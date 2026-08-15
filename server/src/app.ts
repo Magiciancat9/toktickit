@@ -1,11 +1,7 @@
 import express from "express";
 import cors from "cors";
-import { getPrisma } from "./prisma.js";
 import healthRouter from "./routes/health.router.js";
-
-// getPrisma() is your lazy database handle. Call it INSIDE a route when you
-// need the DB (Issue 4). It is intentionally unused until then.
-void getPrisma;
+import categoriesRouter from "./routes/categories.router.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
@@ -14,16 +10,8 @@ export const app = express();
 app.use(cors());          // already wired: lets the Vite dev server call this API
 app.use(express.json());
 
-// API health check
+// API routes
 app.use("/api/health", healthRouter);
-
-// ---------------------------------------------------------------------------
-// Issue 4 — Category list
-// Add:  GET /api/categories
-//   -> read categories from PostgreSQL via getPrisma().category.findMany(...)
-//   -> return each { id, name } in a predictable (id) order
-//   -> on failure, respond 500 with a safe message (no internal details)
-// TODO(Issue 4): implement the route here.
-// ---------------------------------------------------------------------------
+app.use("/api/categories", categoriesRouter);
 
 export default app;
