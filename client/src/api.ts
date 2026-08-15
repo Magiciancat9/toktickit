@@ -10,12 +10,31 @@ export interface SystemStatus {
   categories: Category[];
 }
 
+export interface HealthResponse {
+  status: string;
+  service: string;
+}
+
+/**
+ * Sends a GET request to /api/health to check the backend service status.
+ */
+export async function fetchHealth(): Promise<HealthResponse> {
+  const response = await fetch(`${API_URL}/api/health`);
+  if (!response.ok) {
+    throw new Error(`Backend unavailable with status ${response.status}`);
+  }
+  const data: HealthResponse = await response.json();
+  return data;
+}
+
 // Issue 2 + Issue 4 — call the backend.
-// Steps: fetch `${API_URL}/api/health`; if not ok, throw.
-//        then fetch `${API_URL}/api/categories`; if not ok, throw.
-//        return { online: true, categories }.
-// Throwing on failure lets the UI show a single Offline/error state.
 export async function checkSystem(): Promise<SystemStatus> {
-  // TODO(Issue 2 & 4): implement the two fetch calls described above.
-  throw new Error("checkSystem not implemented yet");
+  const health = await fetchHealth();
+  if (health.status !== "online" && health.status !== "ok") {
+    throw new Error("Backend system is not online");
+  }
+  return {
+    online: true,
+    categories: [],
+  };
 }

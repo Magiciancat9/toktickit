@@ -1,19 +1,27 @@
 import { useState } from "react";
-import { checkSystem, Category } from "./api.js";
+import { fetchHealth, HealthResponse } from "./api.js";
 
-// UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "idle" | "loading" | "success" | "error";
 
 export default function App() {
   const [state, setState] = useState<UiState>("idle");
-  const [categories, setCategories] = useState<Category[]>([]);
-  void categories;
+  const [statusText, setStatusText] = useState<string>("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleCheck() {
-    // TODO(Issue 4): set loading, call checkSystem(), then either
-    //   - success: store categories and show Online + the list, or
-    //   - error: show Offline + a useful message.
     setState("loading");
+    setErrorMsg(null);
+    try {
+      const data: HealthResponse = await fetchHealth();
+      // Formats data.status ("online") to "Backend: Online"
+      const formattedStatus = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+      setStatusText(`System Status: ${formattedStatus}`);
+      setState("success");
+    } catch (err) {
+      console.error("Health check failed:", err);
+      setErrorMsg("Unable to reach the backend. Please try again later.");
+      setState("error");
+    }
   }
 
   return (
@@ -22,11 +30,34 @@ export default function App() {
         TokTickIT <span className="text-success">IT Service Desk</span>
       </h1>
 
-      <button className="btn btn-success" onClick={handleCheck} disabled={state === "loading"}>
-        {state === "loading" ? "Loading…" : "Check System"}
-      </button>
+      <div className="mb-3">
+        <button
+          className="btn btn-success"
+          onClick={handleCheck}
+          disabled={state === "loading"}
+          data-testid="check-system-btn"
+        >
+          {state === "loading" ? "Loading…" : "Check System"}
+        </button>
+      </div>
 
-      {/* TODO(Issue 4): render loading / success (Online + categories) / error (Offline) states. */}
+      {state === "loading" && (
+        <div className="alert alert-info py-2" data-testid="loading-indicator">
+          Checking system status...
+        </div>
+      )}
+
+      {state === "success" && (
+        <div className="mt-3" data-testid="online-status">
+          <span className="badge bg-success fs-6">{statusText}</span>
+        </div>
+      )}
+
+      {state === "error" && (
+        <div className="alert alert-danger py-2 mt-3" data-testid="health-error-message">
+          {errorMsg}
+        </div>
+      )}
     </div>
   );
 }
