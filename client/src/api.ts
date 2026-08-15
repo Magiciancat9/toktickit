@@ -27,14 +27,30 @@ export async function fetchHealth(): Promise<HealthResponse> {
   return data;
 }
 
+/**
+ * Fetches all categories from GET /api/categories.
+ * Returns them in the order the API provides (name asc).
+ */
+export async function fetchCategories(): Promise<Category[]> {
+  const response = await fetch(`${API_URL}/api/categories`);
+  if (!response.ok) {
+    throw new Error(`Failed to load categories: ${response.status}`);
+  }
+  const data: Category[] = await response.json();
+  return data;
+}
+
 // Issue 2 + Issue 4 — call the backend.
 export async function checkSystem(): Promise<SystemStatus> {
-  const health = await fetchHealth();
+  const [health, categories] = await Promise.all([
+    fetchHealth(),
+    fetchCategories(),
+  ]);
   if (health.status !== "online" && health.status !== "ok") {
     throw new Error("Backend system is not online");
   }
   return {
     online: true,
-    categories: [],
+    categories,
   };
 }

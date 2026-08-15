@@ -1,25 +1,23 @@
 import { useState } from "react";
-import { fetchHealth, HealthResponse } from "./api.js";
+import { checkSystem, Category } from "./api.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
 export default function App() {
   const [state, setState] = useState<UiState>("idle");
-  const [statusText, setStatusText] = useState<string>("");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleCheck() {
     setState("loading");
     setErrorMsg(null);
     try {
-      const data: HealthResponse = await fetchHealth();
-      // Formats data.status ("online") to "Backend: Online"
-      const formattedStatus = data.status.charAt(0).toUpperCase() + data.status.slice(1);
-      setStatusText(`System Status: ${formattedStatus}`);
+      const data = await checkSystem();
+      setCategories(data.categories);
       setState("success");
     } catch (err) {
-      console.error("Health check failed:", err);
-      setErrorMsg("Unable to reach the backend. Please try again later.");
+      console.error("System check failed:", err);
+      setErrorMsg("Unable to connect to TokTickIT API");
       setState("error");
     }
   }
@@ -48,14 +46,30 @@ export default function App() {
       )}
 
       {state === "success" && (
-        <div className="mt-3" data-testid="online-status">
-          <span className="badge bg-success fs-6">{statusText}</span>
-        </div>
+        <>
+          <div className="mt-3 mb-3" data-testid="online-status">
+            <span className="badge bg-success fs-6">System Status: Online</span>
+          </div>
+
+          <div data-testid="categories-list">
+            <h2 className="h6 fw-semibold mb-2">Supported Request Categories</h2>
+            <ol>
+              {categories.map((cat) => (
+                <li key={cat.id}>{cat.name}</li>
+              ))}
+            </ol>
+          </div>
+        </>
       )}
 
       {state === "error" && (
-        <div className="alert alert-danger py-2 mt-3" data-testid="health-error-message">
-          {errorMsg}
+        <div className="mt-3">
+          <div className="mb-2" data-testid="offline-status">
+            <span className="badge bg-danger fs-6">System Status: Offline</span>
+          </div>
+          <div className="alert alert-danger py-2" data-testid="health-error-message">
+            {errorMsg}
+          </div>
         </div>
       )}
     </div>
