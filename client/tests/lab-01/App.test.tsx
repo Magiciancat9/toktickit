@@ -1,0 +1,57 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import App from "../../src/App.js";
+import * as api from "../../src/api.js";
+
+describe("App", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders the TokTickIT heading and Check System button on load", () => {
+    render(<App />);
+    expect(screen.getByText(/TokTickIT/i)).toBeInTheDocument();
+    expect(screen.getByTestId("check-system-btn")).toBeInTheDocument();
+  });
+
+  it("shows Online status and seeded categories on success", async () => {
+    vi.spyOn(api, "checkSystem").mockResolvedValue({
+      online: true,
+      categories: [
+        { id: 1, name: "Account and Access" },
+        { id: 2, name: "Hardware" },
+        { id: 3, name: "Software" },
+        { id: 4, name: "Network" },
+      ],
+    });
+
+    render(<App />);
+    await userEvent.click(screen.getByTestId("check-system-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("online-status")).toHaveTextContent("System Status: Online");
+    });
+
+    expect(screen.getByTestId("categories-list")).toBeInTheDocument();
+    expect(screen.getByText("Account and Access")).toBeInTheDocument();
+    expect(screen.getByText("Hardware")).toBeInTheDocument();
+    expect(screen.getByText("Software")).toBeInTheDocument();
+    expect(screen.getByText("Network")).toBeInTheDocument();
+  });
+
+  it("shows an Offline error message when the API is unavailable", async () => {
+    vi.spyOn(api, "checkSystem").mockRejectedValue(new Error("Network error"));
+
+    render(<App />);
+    await userEvent.click(screen.getByTestId("check-system-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("offline-status")).toHaveTextContent("System Status: Offline");
+    });
+
+    expect(screen.getByTestId("health-error-message")).toHaveTextContent(
+      "Unable to connect to TokTickIT API"
+    );
+  });
+});

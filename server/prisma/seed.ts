@@ -1,0 +1,34 @@
+import { getPrisma } from "../src/prisma.js";
+
+const CATEGORIES = [
+  "Account and Access",
+  "Hardware",
+  "Software",
+  "Network",
+];
+
+// Issue 3 — seed the four supported categories.
+// Uses upsert keyed on name so re-running never creates duplicates.
+async function main() {
+  const prisma = getPrisma();
+
+  for (const name of CATEGORIES) {
+    await prisma.category.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+    console.log(`Upserted category: ${name}`);
+  }
+
+  console.log("Seed complete.");
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await getPrisma().$disconnect();
+  });
