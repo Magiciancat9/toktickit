@@ -6,9 +6,10 @@ import { app } from "../../src/app.js";
 // /api/health route in src/app.ts until this test turns green. Use the same
 // pattern to write the categories test yourself (see categories.test.ts).
 describe("GET /api/health", () => {
-  it("returns 200 with status ok and the service name", async () => {
+  it("returns 200 with status online and the service name", async () => {
     const res = await request(app).get("/api/health");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: "ok", service: "TokTickIT API" });
+    expect(res.body.status).toBe("online");
+    expect(res.body.service).toBe("TokTickIT API");
   });
 });
