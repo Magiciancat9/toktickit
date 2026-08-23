@@ -11,11 +11,117 @@ datasource db {
 }
 
 // ---------------------------------------------------------------------------
-// Issue 3 — Create and seed IT request categories
+// Lab 1 Issue 3 — IT request categories
 // ---------------------------------------------------------------------------
 
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   createdAt DateTime @default(now())
+
+  tickets Ticket[]
+}
+
+// ---------------------------------------------------------------------------
+// Lab 2 Issue 2 — Full schema for Requester, Ticket, Attachment, RelatedSystem
+// ---------------------------------------------------------------------------
+
+// Enum for Requested Priority (set by Requester on ticket creation)
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Enum for Current Status (only NEW in Lab 2; extended in later labs)
+enum TicketStatus {
+  NEW
+}
+
+// Development Requester — temporary testing identity used instead of real auth in Lab 2.
+// isActive controls visibility in the selector (inactive Requesters are hidden).
+// Decision: isActive is a boolean rather than a soft-removal timestamp because
+// Requesters are not deleted — they are simply toggled off. This is simpler and
+// matches the selector requirement without introducing confusion with Attachment
+// soft-removal (which uses a nullable DateTime for auditability).
+model RequesterUser {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tickets Ticket[]
+
+  @@index([isActive]) // filtered in every selector query
+}
+
+// Related System — the service, device, or application affected by the ticket.
+// Modelled as a table (not an enum) so the list can grow without a migration.
+model RelatedSystem {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tickets Ticket[]
+
+  @@index([isActive])
+}
+
+// Ticket — core entity created by a Requester.
+// ticketNumber is unique, backend-generated in format TKT-YYYY-NNNNNN.
+// ticketDate is set by the backend at creation; the frontend never supplies it.
+// IT Priority is intentionally absent — it is an IT Staff field added in a later lab.
+model Ticket {
+  id                Int          @id @default(autoincrement())
+  ticketNumber      String       @unique
+  requesterId       Int
+  categoryId        Int
+  relatedSystemId   Int
+  summary           String       @db.VarChar(150)
+  description       String       @db.Text
+  requestedPriority Priority
+  status            TicketStatus @default(NEW)
+  ticketDate        DateTime     @default(now())
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  requester     RequesterUser @relation(fields: [requesterId], references: [id])
+  category      Category      @relation(fields: [categoryId], references: [id])
+  relatedSystem RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+  attachments   Attachment[]
+
+  // Indexes on fields used for filtering, sorting, and ownership queries
+  @@index([requesterId])           // ownership — every list query filters by this
+  @@index([categoryId])            // category filter
+  @@index([requestedPriority])     // priority filter
+  @@index([status])                // status filter
+  @@index([createdAt])             // default sort field
+  @@index([updatedAt])             // secondary sort field
+}
+
+// Attachment — file metadata stored per Ticket.
+// Soft removal: removedAt (nullable DateTime) is set on removal together with
+// removalReason. A null removedAt means the attachment is active.
+// Decision: nullable DateTime is used (not a boolean isRemoved) so that the
+// exact removal timestamp is always recorded for audit purposes, with no extra
+// column needed.
+// storedPath is the server-generated storage path and is NEVER returned to clients.
+model Attachment {
+  id            Int       @id @default(autoincrement())
+  ticketId      Int
+  originalName  String                    // original filename from the user
+  storedPath    String                    // server-generated unique storage path
+  mimeType      String
+  sizeBytes     Int
+  uploadedAt    DateTime  @default(now())
+  removedAt     DateTime?                 // null = active; set = soft-removed
+  removalReason String?                   // required when removedAt is set
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId])               // attachment list per ticket
+  @@index([removedAt])              // filter active vs removed attachments
 }
