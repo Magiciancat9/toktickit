@@ -28,6 +28,7 @@ describe("App", () => {
       meta: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
     });
     vi.spyOn(api, "fetchCategories").mockResolvedValue([]);
+    vi.spyOn(api, "fetchRelatedSystems").mockResolvedValue([]);
   });
 
   it("renders the TokTickIT heading and Check System button on load (after requester selection)", async () => {
@@ -54,9 +55,6 @@ describe("App", () => {
 
     await waitFor(() => expect(screen.getByTestId("nav-create-ticket")).toBeInTheDocument());
     await userEvent.click(screen.getByTestId("nav-create-ticket"));
-
-    // fetchCategories and fetchRelatedSystems are called by CreateTicket on mount
-    vi.spyOn(api, "fetchRelatedSystems").mockResolvedValue([]);
 
     await waitFor(() => {
       expect(screen.getByTestId("create-ticket-form")).toBeInTheDocument();

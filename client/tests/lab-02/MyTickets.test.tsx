@@ -37,12 +37,13 @@ const THREE_TICKETS   = {
 
 function renderMyTickets(
   requesterId = MOCK_REQUESTER_A,
-  onCreateTicket = vi.fn()
+  onCreateTicket = vi.fn(),
+  onOpenTicket = vi.fn()
 ) {
   function Seeder() {
     const { selectRequester, currentRequester } = useRequester();
     if (!currentRequester) selectRequester(requesterId);
-    return <MyTickets onCreateTicket={onCreateTicket} />;
+    return <MyTickets onCreateTicket={onCreateTicket} onOpenTicket={onOpenTicket} />;
   }
   return render(
     <RequesterProvider>
@@ -181,7 +182,7 @@ describe("MyTickets component", () => {
   it("calls onCreateTicket when + Create Ticket button is clicked", async () => {
     const onCreateTicket = vi.fn();
     vi.spyOn(api, "fetchTickets").mockResolvedValue(EMPTY_RESPONSE);
-    renderMyTickets(MOCK_REQUESTER_A, onCreateTicket);
+    renderMyTickets(MOCK_REQUESTER_A, onCreateTicket, vi.fn());
     await waitFor(() => expect(screen.getByTestId("create-ticket-btn")).toBeInTheDocument());
     await userEvent.click(screen.getByTestId("create-ticket-btn"));
     expect(onCreateTicket).toHaveBeenCalledOnce();

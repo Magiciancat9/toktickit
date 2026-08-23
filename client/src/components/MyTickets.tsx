@@ -17,6 +17,7 @@ type ListState = "loading" | "loaded" | "empty" | "no-results" | "error";
 
 interface MyTicketsProps {
   onCreateTicket: () => void;
+  onOpenTicket:   (ticketNumber: string) => void;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 // ── Component ────────────────────────────────────────────────────────────
 
-export function MyTickets({ onCreateTicket }: MyTicketsProps) {
+export function MyTickets({ onCreateTicket, onOpenTicket }: MyTicketsProps) {
   const { currentRequester } = useRequester();
 
   // Filter / sort / pagination state
@@ -291,10 +292,15 @@ export function MyTickets({ onCreateTicket }: MyTicketsProps) {
                     {tickets.map(t => (
                       <tr key={t.id} data-testid={`ticket-row-${t.ticketNumber}`}>
                         <td>
-                          <div className="fw-semibold" style={{ color: "#006B3C" }}>
+                          <button
+                            className="btn btn-link p-0 fw-semibold text-decoration-none"
+                            style={{ color: "#006B3C" }}
+                            onClick={() => onOpenTicket(t.ticketNumber)}
+                            data-testid={`ticket-link-${t.ticketNumber}`}
+                          >
                             {t.ticketNumber}
-                          </div>
-                          <small className="text-muted">{formatDate(t.createdAt)}</small>
+                          </button>
+                          <small className="d-block text-muted">{formatDate(t.createdAt)}</small>
                         </td>
                         <td style={{ maxWidth: 280 }}>
                           <span style={{
@@ -333,9 +339,14 @@ export function MyTickets({ onCreateTicket }: MyTicketsProps) {
                 data-testid={`ticket-card-${t.ticketNumber}`}
               >
                 <div className="d-flex justify-content-between align-items-start">
-                  <span className="fw-semibold" style={{ color: "#006B3C" }}>
+                  <button
+                    className="btn btn-link p-0 fw-semibold text-decoration-none"
+                    style={{ color: "#006B3C" }}
+                    onClick={() => onOpenTicket(t.ticketNumber)}
+                    data-testid={`ticket-card-link-${t.ticketNumber}`}
+                  >
                     {t.ticketNumber}
-                  </span>
+                  </button>
                   <span className={`badge ${STATUS_BADGE[t.status] ?? "bg-secondary"}`}>
                     {t.status}
                   </span>

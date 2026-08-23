@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import path from "path";
 import fs from "fs";
 import { getPrisma } from "../prisma.js";
 import {
@@ -8,8 +7,9 @@ import {
   MAX_ACTIVE_ATTACHMENTS,
 } from "../utils/attachmentValidation.js";
 
+// ── POST /api/tickets/:ticketNumber/attachments ────────────────────────────
+
 /**
- * POST /api/tickets/:ticketNumber/attachments
  * Uploads a file attachment to an existing Ticket.
  * Validates file type, size, and active attachment count.
  * If the ticket exists but upload validation fails, the ticket is NOT rolled back.
@@ -18,12 +18,9 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
   const prisma = getPrisma();
   const { ticketNumber } = req.params;
   const requesterId = Number(req.body.requesterId);
-
-  // multer v2 stores file in req.file
   const file = req.file as Express.Multer.File | undefined;
 
   if (!requesterId || isNaN(requesterId)) {
-    // Clean up uploaded file if it slipped through
     if (file?.path) fs.unlink(file.path, () => {});
     res.status(400).json({
       error: { code: "VALIDATION_ERROR", message: "requesterId is required." },
@@ -38,19 +35,14 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  // Validate MIME type
   if (!isAllowedMimeType(file.mimetype)) {
     fs.unlink(file.path, () => {});
     res.status(415).json({
-      error: {
-        code: "UNSUPPORTED_MEDIA_TYPE",
-        message: "Only JPG, PNG, WEBP, and PDF files are allowed.",
-      },
+      error: { code: "UNSUPPORTED_MEDIA_TYPE", message: "Only JPG, PNG, WEBP, and PDF files are allowed." },
     });
     return;
   }
 
-  // Validate file size
   if (!isAllowedFileSize(file.size)) {
     fs.unlink(file.path, () => {});
     res.status(400).json({
@@ -60,7 +52,6 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
   }
 
   try {
-    // Verify ticket exists and belongs to the requester
     const ticket = await prisma.ticket.findUnique({ where: { ticketNumber } });
     if (!ticket) {
       fs.unlink(file.path, () => {});
@@ -69,13 +60,10 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
     }
     if (ticket.requesterId !== requesterId) {
       fs.unlink(file.path, () => {});
-      res.status(403).json({
-        error: { code: "FORBIDDEN", message: "You do not own this ticket." },
-      });
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not own this ticket." } });
       return;
     }
 
-    // Check active attachment count
     const activeCount = await prisma.attachment.count({
       where: { ticketId: ticket.id, removedAt: null },
     });
@@ -90,7 +78,6 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    // Persist attachment metadata
     const attachment = await prisma.attachment.create({
       data: {
         ticketId:     ticket.id,
@@ -101,14 +88,13 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
       },
     });
 
-    // Return metadata only — never expose storedPath to the client
     res.status(201).json({
-      id:           attachment.id,
-      originalName: attachment.originalName,
-      mimeType:     attachment.mimeType,
-      sizeBytes:    attachment.sizeBytes,
-      uploadedAt:   attachment.uploadedAt,
-      removedAt:    attachment.removedAt,
+      id:            attachment.id,
+      originalName:  attachment.originalName,
+      mimeType:      attachment.mimeType,
+      sizeBytes:     attachment.sizeBytes,
+      uploadedAt:    attachment.uploadedAt,
+      removedAt:     attachment.removedAt,
       removalReason: attachment.removalReason,
     });
   } catch (err) {
@@ -116,6 +102,150 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
     if (file?.path) fs.unlink(file.path, () => {});
     res.status(500).json({
       error: { code: "SERVER_ERROR", message: "Unable to upload attachment. Please try again later." },
+    });
+  }
+};
+
+// ── GET /api/attachments/:id/download ─────────────────────────────────────
+
+/**
+ * Downloads the file for an active attachment.
+ * Returns 410 Gone if the attachment has been soft-removed.
+ * Returns 403 if the requesting Requester does not own the ticket.
+ */
+export const downloadAttachment = async (req: Request, res: Response): Promise<void> => {
+  const prisma = getPrisma();
+  const id = Number(req.params.id);
+  const requesterId = Number(req.query.requesterId);
+
+  if (!req.query.requesterId || isNaN(requesterId)) {
+    res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: "requesterId is required." },
+    });
+    return;
+  }
+
+  if (isNaN(id)) {
+    res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: "Invalid attachment id." },
+    });
+    return;
+  }
+
+  try {
+    const attachment = await prisma.attachment.findUnique({
+      where: { id },
+      include: { ticket: { select: { requesterId: true } } },
+    });
+
+    if (!attachment) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Attachment not found." } });
+      return;
+    }
+
+    if (attachment.ticket.requesterId !== requesterId) {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not own this attachment." } });
+      return;
+    }
+
+    if (attachment.removedAt !== null) {
+      res.status(410).json({
+        error: { code: "GONE", message: "This attachment has been removed and is no longer available." },
+      });
+      return;
+    }
+
+    if (!fs.existsSync(attachment.storedPath)) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Attachment file not found on server." } });
+      return;
+    }
+
+    res.setHeader("Content-Type", attachment.mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(attachment.originalName)}"`
+    );
+    fs.createReadStream(attachment.storedPath).pipe(res);
+  } catch (err) {
+    console.error("Failed to download attachment:", err);
+    res.status(500).json({
+      error: { code: "SERVER_ERROR", message: "Unable to download attachment. Please try again later." },
+    });
+  }
+};
+
+// ── PATCH /api/attachments/:id/remove ─────────────────────────────────────
+
+/**
+ * Soft-removes an attachment. Sets removedAt and removalReason.
+ * The file is no longer downloadable after removal.
+ * The metadata row is retained for audit purposes.
+ */
+export const removeAttachment = async (req: Request, res: Response): Promise<void> => {
+  const prisma = getPrisma();
+  const id = Number(req.params.id);
+  const requesterId = Number(req.body.requesterId);
+  const removalReason =
+    typeof req.body.removalReason === "string" ? req.body.removalReason.trim() : "";
+
+  if (!req.body.requesterId || isNaN(requesterId)) {
+    res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: "requesterId is required." },
+    });
+    return;
+  }
+
+  if (!removalReason || removalReason.length < 5) {
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "A removal reason of at least 5 characters is required.",
+      },
+    });
+    return;
+  }
+
+  try {
+    const attachment = await prisma.attachment.findUnique({
+      where: { id },
+      include: { ticket: { select: { requesterId: true } } },
+    });
+
+    if (!attachment) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Attachment not found." } });
+      return;
+    }
+
+    if (attachment.ticket.requesterId !== requesterId) {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not own this attachment." } });
+      return;
+    }
+
+    if (attachment.removedAt !== null) {
+      res.status(409).json({
+        error: { code: "ALREADY_REMOVED", message: "This attachment has already been removed." },
+      });
+      return;
+    }
+
+    const updated = await prisma.attachment.update({
+      where: { id },
+      data:  { removedAt: new Date(), removalReason },
+    });
+
+    res.status(200).json({
+      id:            updated.id,
+      originalName:  updated.originalName,
+      mimeType:      updated.mimeType,
+      sizeBytes:     updated.sizeBytes,
+      uploadedAt:    updated.uploadedAt,
+      removedAt:     updated.removedAt,
+      removalReason: updated.removalReason,
+    });
+  } catch (err) {
+    console.error("Failed to remove attachment:", err);
+    res.status(500).json({
+      error: { code: "SERVER_ERROR", message: "Unable to remove attachment. Please try again later." },
     });
   }
 };
