@@ -1,7 +1,11 @@
 import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
 import path from "path";
-import { createTicket } from "../controllers/tickets.controller.js";
+import {
+  createTicket,
+  getTickets,
+  getTicketByNumber,
+} from "../controllers/tickets.controller.js";
 import { uploadAttachment } from "../controllers/attachments.controller.js";
 
 // Store uploaded files in server/uploads/ with a unique name
@@ -22,6 +26,12 @@ const upload = multer({
 });
 
 const router = Router();
+
+// GET /api/tickets — list tickets for a Requester (search/filter/sort/pagination)
+router.get("/", getTickets);
+
+// GET /api/tickets/:ticketNumber — get one owned Ticket with attachments
+router.get("/:ticketNumber", getTicketByNumber);
 
 // POST /api/tickets — create a new ticket (JSON body, no file)
 router.post("/", createTicket);

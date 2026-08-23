@@ -116,6 +116,70 @@ export async function checkSystem(): Promise<SystemStatus> {
 
 // ── Tickets ────────────────────────────────────────────────────────────────
 
+export interface TicketListParams {
+  requesterId: number;
+  search?:     string;
+  category?:   string;
+  priority?:   Priority;
+  status?:     string;
+  sort?:       "createdAt" | "updatedAt";
+  order?:      "asc" | "desc";
+  page?:       number;
+  pageSize?:   10 | 25 | 50;
+}
+
+export interface TicketListMeta {
+  page:       number;
+  pageSize:   number;
+  total:      number;
+  totalPages: number;
+}
+
+export interface TicketListResponse {
+  data: Ticket[];
+  meta: TicketListMeta;
+}
+
+/**
+ * GET /api/tickets — returns the Requester's own tickets with search/filter/sort/pagination.
+ */
+export async function fetchTickets(params: TicketListParams): Promise<TicketListResponse> {
+  const qs = new URLSearchParams();
+  qs.set("requesterId", String(params.requesterId));
+  if (params.search)   qs.set("search",   params.search);
+  if (params.category) qs.set("category", params.category);
+  if (params.priority) qs.set("priority", params.priority);
+  if (params.status)   qs.set("status",   params.status);
+  if (params.sort)     qs.set("sort",     params.sort);
+  if (params.order)    qs.set("order",    params.order);
+  if (params.page)     qs.set("page",     String(params.page));
+  if (params.pageSize) qs.set("pageSize", String(params.pageSize));
+
+  const response = await fetch(`${API_URL}/api/tickets?${qs.toString()}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to load tickets: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * GET /api/tickets/:ticketNumber — returns one owned ticket with attachments.
+ */
+export async function fetchTicketByNumber(
+  ticketNumber: string,
+  requesterId: number
+): Promise<Ticket> {
+  const response = await fetch(
+    `${API_URL}/api/tickets/${ticketNumber}?requesterId=${requesterId}`
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to load ticket: ${response.status}`);
+  }
+  return response.json();
+}
+
 /**
  * POST /api/tickets — creates a new ticket for the selected Requester.
  * Throws with parsed field errors on 400 validation failure.

@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { useRequester } from "../context/RequesterContext.js";
 
-type Page = "home" | "create-ticket";
+type Page = "my-tickets" | "create-ticket";
 
 interface AppShellProps {
   children:    ReactNode;
@@ -35,7 +35,7 @@ export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
         <button
           className="navbar-brand fw-bold text-white fs-5 btn p-0 border-0"
           style={{ letterSpacing: "0.02em", background: "none" }}
-          onClick={() => onNavigate?.("home")}
+          onClick={() => onNavigate?.("my-tickets")}
           aria-label="TokTickIT home"
         >
           🕐 TokTickIT
@@ -61,10 +61,10 @@ export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
             <li className="nav-item">
               <button
                 className="nav-link text-white btn p-2 border-0"
-                style={navLinkStyle("home")}
-                onClick={() => onNavigate?.("home")}
+                style={navLinkStyle("my-tickets")}
+                onClick={() => onNavigate?.("my-tickets")}
                 data-testid="nav-my-tickets"
-                aria-current={activePage === "home" ? "page" : undefined}
+                aria-current={activePage === "my-tickets" ? "page" : undefined}
               >
                 My Tickets
               </button>
