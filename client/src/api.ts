@@ -224,3 +224,36 @@ export async function uploadAttachment(
   }
   return response.json();
 }
+
+/**
+ * PATCH /api/attachments/:id/remove — soft-removes an attachment.
+ * Requires a removalReason of at least 5 characters.
+ */
+export async function removeAttachment(
+  attachmentId: number,
+  requesterId: number,
+  removalReason: string
+): Promise<AttachmentMeta> {
+  const response = await fetch(`${API_URL}/api/attachments/${attachmentId}/remove`, {
+    method:  "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ requesterId, removalReason }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Remove failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Returns the URL to download an active attachment.
+ * The browser navigates to this URL — no fetch needed.
+ * Blocked by the backend (410) if the attachment has been soft-removed.
+ */
+export function getAttachmentDownloadUrl(
+  attachmentId: number,
+  requesterId: number
+): string {
+  return `${API_URL}/api/attachments/${attachmentId}/download?requesterId=${requesterId}`;
+}
