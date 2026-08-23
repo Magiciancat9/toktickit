@@ -3,15 +3,18 @@ import { checkSystem, Category } from "./api.js";
 import { useRequester } from "./context/RequesterContext.js";
 import { RequesterSelector } from "./components/RequesterSelector.js";
 import { AppShell } from "./components/AppShell.js";
+import { CreateTicket } from "./components/CreateTicket.js";
 
+type Page = "home" | "create-ticket";
 type UiState = "idle" | "loading" | "success" | "error";
 
 export default function App() {
   const { currentRequester } = useRequester();
 
-  const [state, setState]       = useState<UiState>("idle");
+  const [page,       setPage]       = useState<Page>("home");
+  const [state,      setState]      = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg,   setErrorMsg]   = useState<string | null>(null);
 
   // If no Requester is selected, show the selector screen first.
   if (!currentRequester) {
@@ -32,8 +35,20 @@ export default function App() {
     }
   }
 
+  // ── Create Ticket page ────────────────────────────────────────────────
+
+  if (page === "create-ticket") {
+    return (
+      <AppShell activePage="create-ticket" onNavigate={setPage}>
+        <CreateTicket onCancel={() => setPage("home")} />
+      </AppShell>
+    );
+  }
+
+  // ── Home page ─────────────────────────────────────────────────────────
+
   return (
-    <AppShell>
+    <AppShell activePage="home" onNavigate={setPage}>
       <div style={{ maxWidth: 640 }}>
         <h1 className="h3 mb-4">
           TokTickIT <span className="text-success">IT Service Desk</span>
