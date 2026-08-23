@@ -1,8 +1,12 @@
 import { ReactNode } from "react";
 import { useRequester } from "../context/RequesterContext.js";
 
+type Page = "home" | "create-ticket";
+
 interface AppShellProps {
-  children: ReactNode;
+  children:    ReactNode;
+  activePage?: Page;
+  onNavigate?: (page: Page) => void;
 }
 
 /**
@@ -10,8 +14,14 @@ interface AppShellProps {
  * Displays the current Development Requester name and a "Change" link.
  * This is a Lab 2 testing mechanism — not real authentication.
  */
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
   const { currentRequester, clearRequester } = useRequester();
+
+  function navLinkStyle(page: Page): React.CSSProperties {
+    return activePage === page
+      ? { borderBottom: "2px solid #EAF6EF", paddingBottom: 2 }
+      : {};
+  }
 
   return (
     <>
@@ -22,12 +32,14 @@ export function AppShell({ children }: AppShellProps) {
         data-testid="app-shell-nav"
       >
         {/* Brand */}
-        <span
-          className="navbar-brand fw-bold text-white fs-5"
-          style={{ letterSpacing: "0.02em" }}
+        <button
+          className="navbar-brand fw-bold text-white fs-5 btn p-0 border-0"
+          style={{ letterSpacing: "0.02em", background: "none" }}
+          onClick={() => onNavigate?.("home")}
+          aria-label="TokTickIT home"
         >
           🕐 TokTickIT
-        </span>
+        </button>
 
         {/* Hamburger toggle for mobile */}
         <button
@@ -47,22 +59,26 @@ export function AppShell({ children }: AppShellProps) {
           {/* Left nav links */}
           <ul className="navbar-nav me-auto gap-1">
             <li className="nav-item">
-              <a
-                href="#my-tickets"
-                className="nav-link text-white"
+              <button
+                className="nav-link text-white btn p-2 border-0"
+                style={navLinkStyle("home")}
+                onClick={() => onNavigate?.("home")}
                 data-testid="nav-my-tickets"
+                aria-current={activePage === "home" ? "page" : undefined}
               >
                 My Tickets
-              </a>
+              </button>
             </li>
             <li className="nav-item">
-              <a
-                href="#create-ticket"
-                className="nav-link text-white"
+              <button
+                className="nav-link text-white btn p-2 border-0"
+                style={navLinkStyle("create-ticket")}
+                onClick={() => onNavigate?.("create-ticket")}
                 data-testid="nav-create-ticket"
+                aria-current={activePage === "create-ticket" ? "page" : undefined}
               >
                 + Create Ticket
-              </a>
+              </button>
             </li>
           </ul>
 
