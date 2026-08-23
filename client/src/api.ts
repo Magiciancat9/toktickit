@@ -1,5 +1,11 @@
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
+export interface Requester {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -13,6 +19,20 @@ export interface SystemStatus {
 export interface HealthResponse {
   status: string;
   service: string;
+}
+
+/**
+ * Fetches all active Development Requesters from GET /api/requesters.
+ * Inactive Requesters are excluded by the backend.
+ * This is a Lab 2 testing mechanism, not real authentication.
+ */
+export async function fetchRequesters(): Promise<Requester[]> {
+  const response = await fetch(`${API_URL}/api/requesters`);
+  if (!response.ok) {
+    throw new Error(`Failed to load requesters: ${response.status}`);
+  }
+  const data: Requester[] = await response.json();
+  return data;
 }
 
 /**

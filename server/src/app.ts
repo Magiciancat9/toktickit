@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import healthRouter from "./routes/health.router.js";
 import categoriesRouter from "./routes/categories.router.js";
+import requestersRouter from "./routes/requesters.router.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
@@ -13,5 +14,6 @@ app.use(express.json());
 // API routes
 app.use("/api/health", healthRouter);
 app.use("/api/categories", categoriesRouter);
+app.use("/api/requesters", requestersRouter);
 
 export default app;
