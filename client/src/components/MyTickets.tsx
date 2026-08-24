@@ -149,58 +149,86 @@ export function MyTickets({ onCreateTicket, onOpenTicket }: MyTicketsProps) {
       </div>
 
       {/* ── Search + filters ── */}
-      <div className="card shadow-sm border-0 mb-3 p-3">
-        <div className="row g-2">
-          <div className="col-12 col-md-4">
-            <input
-              type="search"
-              className="form-control form-control-sm"
-              placeholder="Search by ticket number or summary…"
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
-              data-testid="search-input"
-              aria-label="Search tickets"
-            />
+      <div className="card shadow-sm border-0 mb-3 p-3" style={{ backgroundColor: "#F8F9FA" }}>
+        <div className="row g-3">
+          <div className="col-12 col-md-3">
+            <div className="position-relative">
+              <i className="bi bi-search position-absolute" style={{
+                left: "12px", top: "50%", transform: "translateY(-50%)",
+                color: "#6C757D", pointerEvents: "none"
+              }}></i>
+              <input
+                type="search"
+                className="form-control form-control-sm ps-5"
+                placeholder="Search by ticket number or summary…"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                data-testid="search-input"
+                aria-label="Search tickets"
+                style={{ paddingLeft: "36px" }}
+              />
+            </div>
           </div>
           <div className="col-6 col-md-2">
-            <select
-              className="form-select form-select-sm"
-              value={category}
-              onChange={e => { setCategory(e.target.value); setPage(1); }}
-              data-testid="filter-category"
-              aria-label="Filter by category"
-            >
-              <option value="">All Categories</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
+            <div>
+              <label className="form-label mb-1 text-muted" style={{ fontSize: "0.75rem" }}>Category</label>
+              <select
+                className="form-select form-select-sm"
+                value={category}
+                onChange={e => { setCategory(e.target.value); setPage(1); }}
+                data-testid="filter-category"
+                aria-label="Filter by category"
+              >
+                <option value="">All Categories</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="col-6 col-md-2">
-            <select
-              className="form-select form-select-sm"
-              value={priority}
-              onChange={e => { setPriority(e.target.value as Priority | ""); setPage(1); }}
-              data-testid="filter-priority"
-              aria-label="Filter by priority"
-            >
-              <option value="">All Priorities</option>
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-            </select>
+            <div>
+              <label className="form-label mb-1 text-muted" style={{ fontSize: "0.75rem" }}>Requested Priority</label>
+              <select
+                className="form-select form-select-sm"
+                value={priority}
+                onChange={e => { setPriority(e.target.value as Priority | ""); setPage(1); }}
+                data-testid="filter-priority"
+                aria-label="Filter by requested priority"
+              >
+                <option value="">All Priorities</option>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+            </div>
           </div>
           <div className="col-6 col-md-2">
-            <select
-              className="form-select form-select-sm"
-              value={status}
-              onChange={e => { setStatus(e.target.value); setPage(1); }}
-              data-testid="filter-status"
-              aria-label="Filter by status"
-            >
-              <option value="">All Statuses</option>
-              <option value="NEW">New</option>
-            </select>
+            <div>
+              <label className="form-label mb-1 text-muted" style={{ fontSize: "0.75rem" }}>IT Priority</label>
+              <select
+                className="form-select form-select-sm"
+                aria-label="Filter by IT priority"
+                disabled
+              >
+                <option value="">All Priorities</option>
+              </select>
+            </div>
+          </div>
+          <div className="col-6 col-md-2">
+            <div>
+              <label className="form-label mb-1 text-muted" style={{ fontSize: "0.75rem" }}>Current Status</label>
+              <select
+                className="form-select form-select-sm"
+                value={status}
+                onChange={e => { setStatus(e.target.value); setPage(1); }}
+                data-testid="filter-status"
+                aria-label="Filter by current status"
+              >
+                <option value="">All Statuses</option>
+                <option value="NEW">New</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -259,27 +287,39 @@ export function MyTickets({ onCreateTicket, onOpenTicket }: MyTicketsProps) {
           <div className="d-none d-md-block" data-testid="tickets-table">
             <div className="card shadow-sm border-0">
               <div className="table-responsive">
-                <table className="table table-hover mb-0 align-middle">
-                  <thead style={{ backgroundColor: "#F5F7F6" }}>
+                <table className="table table-hover mb-0 align-middle" style={{ fontSize: "0.875rem" }}>
+                  <thead style={{ backgroundColor: "#F8F9FA", borderBottom: "2px solid #DEE2E6" }}>
                     <tr>
-                      <th scope="col">
+                      <th scope="col" style={{ color: "#495057", fontWeight: 600 }}>
                         <button
                           className="btn btn-link p-0 text-decoration-none fw-semibold"
-                          style={{ color: "#1A2E22" }}
+                          style={{ color: "#495057" }}
+                          onClick={() => toggleSort("createdAt")}
+                          aria-label="Sort by ticket number"
+                        >
+                          Ticket No. <SortIcon field="createdAt" />
+                        </button>
+                      </th>
+                      <th scope="col" style={{ color: "#495057", fontWeight: 600 }}>
+                        <button
+                          className="btn btn-link p-0 text-decoration-none fw-semibold"
+                          style={{ color: "#495057" }}
                           onClick={() => toggleSort("createdAt")}
                           aria-label="Sort by created date"
                         >
-                          Ticket No. / Created <SortIcon field="createdAt" />
+                          Created Date <SortIcon field="createdAt" />
                         </button>
                       </th>
-                      <th scope="col" style={{ color: "#1A2E22" }}>Summary</th>
-                      <th scope="col" style={{ color: "#1A2E22" }}>Category</th>
-                      <th scope="col" style={{ color: "#1A2E22" }}>Priority</th>
-                      <th scope="col" style={{ color: "#1A2E22" }}>Status</th>
-                      <th scope="col">
+                      <th scope="col" style={{ color: "#495057", fontWeight: 600 }}>Summary</th>
+                      <th scope="col" style={{ color: "#495057", fontWeight: 600 }}>Category</th>
+                      <th scope="col" style={{ color: "#495057", fontWeight: 600 }}>Requested Priority</th>
+                      <th scope="col" style={{ color: "#495057", fontWeight: 600 }}>IT Priority</th>
+                      <th scope="col" style={{ color: "#495057", fontWeight: 600 }}>Current Status</th>
+                      <th scope="col" style={{ color: "#495057", fontWeight: 600 }}>Ticket Owner</th>
+                      <th scope="col" style={{ color: "#495057", fontWeight: 600 }}>
                         <button
                           className="btn btn-link p-0 text-decoration-none fw-semibold"
-                          style={{ color: "#1A2E22" }}
+                          style={{ color: "#495057" }}
                           onClick={() => toggleSort("updatedAt")}
                           aria-label="Sort by last updated"
                         >
@@ -290,17 +330,27 @@ export function MyTickets({ onCreateTicket, onOpenTicket }: MyTicketsProps) {
                   </thead>
                   <tbody>
                     {tickets.map(t => (
-                      <tr key={t.id} data-testid={`ticket-row-${t.ticketNumber}`}>
+                      <tr
+                        key={t.id}
+                        data-testid={`ticket-row-${t.ticketNumber}`}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => onOpenTicket(t.ticketNumber)}
+                      >
                         <td>
-                          <button
-                            className="btn btn-link p-0 fw-semibold text-decoration-none"
+                          <span
+                            className="fw-semibold text-decoration-none"
                             style={{ color: "#006B3C" }}
-                            onClick={() => onOpenTicket(t.ticketNumber)}
                             data-testid={`ticket-link-${t.ticketNumber}`}
                           >
                             {t.ticketNumber}
-                          </button>
-                          <small className="d-block text-muted">{formatDate(t.createdAt)}</small>
+                          </span>
+                        </td>
+                        <td style={{ color: "#6C757D" }}>
+                          {new Date(t.createdAt).toLocaleDateString("en-US", {
+                            month: "short", day: "numeric", year: "numeric"
+                          })} {new Date(t.createdAt).toLocaleTimeString("en-US", {
+                            hour: "2-digit", minute: "2-digit", hour12: true
+                          })}
                         </td>
                         <td style={{ maxWidth: 280 }}>
                           <span style={{
@@ -312,16 +362,47 @@ export function MyTickets({ onCreateTicket, onOpenTicket }: MyTicketsProps) {
                         </td>
                         <td>{(t.category as { name: string } | undefined)?.name ?? "—"}</td>
                         <td>
-                          <span className={`badge ${PRIORITY_BADGE[t.requestedPriority] ?? "bg-secondary"}`}>
-                            {t.requestedPriority}
+                          <span
+                            className={`badge rounded-pill ${
+                              t.requestedPriority === "HIGH" ? "bg-danger" :
+                              t.requestedPriority === "MEDIUM" ? "bg-warning text-dark" :
+                              "bg-success"
+                            }`}
+                            style={{ padding: "0.35em 0.75em", fontSize: "0.75rem" }}
+                          >
+                            {t.requestedPriority === "LOW" ? "Low" :
+                             t.requestedPriority === "MEDIUM" ? "Medium" : "High"}
                           </span>
                         </td>
                         <td>
-                          <span className={`badge ${STATUS_BADGE[t.status] ?? "bg-secondary"}`}>
-                            {t.status}
+                          <span className="text-muted" style={{ fontSize: "0.875rem" }}>—</span>
+                        </td>
+                        <td>
+                          <span className={`badge rounded-pill ${
+                              t.status === "NEW" ? "bg-primary" :
+                              t.status === "IN_PROGRESS" ? "bg-info text-dark" :
+                              t.status === "RESOLVED" ? "bg-success" :
+                              t.status === "PENDING" ? "bg-warning text-dark" :
+                              "bg-secondary"
+                            }`}
+                            style={{ padding: "0.35em 0.75em", fontSize: "0.75rem" }}
+                          >
+                            {t.status === "NEW" ? "Open" :
+                             t.status === "IN_PROGRESS" ? "In Progress" :
+                             t.status === "RESOLVED" ? "Resolved" :
+                             t.status === "PENDING" ? "Pending" : "Closed"}
                           </span>
                         </td>
-                        <td><small className="text-muted">{formatDate(t.updatedAt)}</small></td>
+                        <td style={{ color: "#6C757D" }}>
+                          <span className="text-muted">—</span>
+                        </td>
+                        <td style={{ color: "#6C757D" }}>
+                          {new Date(t.updatedAt).toLocaleDateString("en-US", {
+                            month: "short", day: "numeric", year: "numeric"
+                          })} {new Date(t.updatedAt).toLocaleTimeString("en-US", {
+                            hour: "2-digit", minute: "2-digit", hour12: true
+                          })}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

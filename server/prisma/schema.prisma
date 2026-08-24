@@ -94,12 +94,12 @@ model Ticket {
   attachments   Attachment[]
 
   // Indexes on fields used for filtering, sorting, and ownership queries
-  @@index([requesterId])           // ownership — every list query filters by this
-  @@index([categoryId])            // category filter
-  @@index([requestedPriority])     // priority filter
-  @@index([status])                // status filter
-  @@index([createdAt])             // default sort field
-  @@index([updatedAt])             // secondary sort field
+  @@index([requesterId])       // ownership — every list query filters by this
+  @@index([categoryId])        // category filter
+  @@index([requestedPriority]) // priority filter
+  @@index([status])            // status filter
+  @@index([createdAt])         // default sort field
+  @@index([updatedAt])         // secondary sort field
 }
 
 // Attachment — file metadata stored per Ticket.
@@ -112,16 +112,16 @@ model Ticket {
 model Attachment {
   id            Int       @id @default(autoincrement())
   ticketId      Int
-  originalName  String                    // original filename from the user
-  storedPath    String                    // server-generated unique storage path
+  originalName  String // original filename from the user
+  storedPath    String // server-generated unique storage path
   mimeType      String
   sizeBytes     Int
   uploadedAt    DateTime  @default(now())
-  removedAt     DateTime?                 // null = active; set = soft-removed
-  removalReason String?                   // required when removedAt is set
+  removedAt     DateTime? // null = active; set = soft-removed
+  removalReason String? // required when removedAt is set
 
   ticket Ticket @relation(fields: [ticketId], references: [id])
 
-  @@index([ticketId])               // attachment list per ticket
-  @@index([removedAt])              // filter active vs removed attachments
+  @@index([ticketId]) // attachment list per ticket
+  @@index([removedAt]) // filter active vs removed attachments
 }
