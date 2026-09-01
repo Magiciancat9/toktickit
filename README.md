@@ -83,3 +83,75 @@ npm --prefix client run test
 # Backend API tests
 npm --prefix server run test
 ```
+
+---
+
+## Lab 2 — Additional Features and Testing
+
+Lab 2 extends TokTickIT with a complete ticket management system including requester context, ticket creation, ticket listing, ticket detail with attachments, and responsive end-to-end testing.
+
+### New Features in Lab 2
+
+- **Requester Context:** Global requester selection with localStorage persistence
+- **Create Ticket:** Form with validation for creating new IT support tickets
+- **My Tickets:** Filterable table showing all tickets for the current requester
+- **Ticket Detail:** Read-only ticket view with file attachment upload and removal
+- **Responsive Design:** Mobile, tablet, and desktop viewport support with E2E screenshot tests
+
+### Database Changes
+
+Lab 2 adds four new models:
+- `Requester` — Users who create tickets
+- `RelatedSystem` — IT systems that tickets reference (Email, VPN, etc.)
+- `Ticket` — The core ticket model with status, priority, and relations
+- `Attachment` — Files attached to tickets with soft-delete support
+
+### Running Lab 2 Locally
+
+After completing the Lab 1 setup above, apply the Lab 2 migrations and seed data:
+
+```bash
+# Apply Lab 2 database migrations
+npm --prefix server run prisma:migrate
+
+# Seed Lab 2 reference data (requesters, related systems, sample tickets)
+npm --prefix server run prisma:seed
+```
+
+Start both servers as described in step 5 above, then navigate to:
+- **Frontend:** http://localhost:5173
+- **Backend API:** http://localhost:3000/api
+
+### Running End-to-End Tests (Playwright)
+
+Lab 2 includes comprehensive Playwright E2E tests covering the full ticket workflow and responsive layouts across three viewports (desktop, tablet, mobile).
+
+**Prerequisites:**
+- Both frontend and backend servers must be running before executing E2E tests
+
+```bash
+# Install Playwright browsers (first time only)
+npx playwright install
+
+# Run all E2E tests
+npx playwright test
+
+# Run E2E tests for a specific viewport
+npx playwright test --project=desktop
+npx playwright test --project=tablet
+npx playwright test --project=mobile
+
+# Run E2E tests in UI mode (interactive debugging)
+npx playwright test --ui
+
+# View the HTML test report
+npx playwright show-report artifacts/lab-02/playwright-report
+```
+
+### Lab 2 Test Coverage
+
+| Test Suite | Location | Purpose |
+|------------|----------|---------|
+| API Tests | `server/tests/lab-02/` | Backend endpoint integration tests |
+| Component Tests | `client/tests/lab-02/` | React component unit tests |
+| E2E Tests | `e2e/lab-02/` | Full user workflow and responsive screenshot tests |
