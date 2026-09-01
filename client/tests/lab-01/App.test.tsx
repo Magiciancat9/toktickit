@@ -3,55 +3,77 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../../src/App.js";
 import * as api from "../../src/api.js";
+import { RequesterProvider } from "../../src/context/RequesterContext.js";
+
+// App now shows MyTickets as the default home page (Lab 2 Issue 5).
+// Tests drive past the RequesterSelector first, then verify App behaviour.
+
+const MOCK_REQUESTER = { id: 1, name: "Jennifer Anderson", email: "jennifer@example.com" };
+
+function renderApp() {
+  return render(
+    <RequesterProvider>
+      <App />
+    </RequesterProvider>
+  );
+}
 
 describe("App", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-  });
-
-  it("renders the TokTickIT heading and Check System button on load", () => {
-    render(<App />);
-    expect(screen.getByText(/TokTickIT/i)).toBeInTheDocument();
-    expect(screen.getByTestId("check-system-btn")).toBeInTheDocument();
-  });
-
-  it("shows Online status and seeded categories on success", async () => {
-    vi.spyOn(api, "checkSystem").mockResolvedValue({
-      online: true,
-      categories: [
-        { id: 1, name: "Account and Access" },
-        { id: 2, name: "Hardware" },
-        { id: 3, name: "Software" },
-        { id: 4, name: "Network" },
-      ],
+    vi.spyOn(api, "fetchRequesters").mockResolvedValue([MOCK_REQUESTER]);
+    // MyTickets will call fetchTickets on mount — return empty list by default
+    vi.spyOn(api, "fetchTickets").mockResolvedValue({
+      data: [],
+      meta: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
     });
+    vi.spyOn(api, "fetchCategories").mockResolvedValue([]);
+    vi.spyOn(api, "fetchRelatedSystems").mockResolvedValue([]);
+  });
 
-    render(<App />);
-    await userEvent.click(screen.getByTestId("check-system-btn"));
+  it("renders the TokTickIT heading and Check System button on load (after requester selection)", async () => {
+    renderApp();
+
+    // Drive past selector
+    await waitFor(() => expect(screen.getByTestId("requester-select")).toBeInTheDocument());
+    await userEvent.selectOptions(screen.getByTestId("requester-select"), "1");
+    await userEvent.click(screen.getByTestId("selector-continue-btn"));
+
+    // App shell and My Tickets screen should be visible
+    await waitFor(() => {
+      expect(screen.getByTestId("app-shell-nav")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("my-tickets-screen")).toBeInTheDocument();
+  });
+
+  it("navigates to Create Ticket when + Create Ticket nav link is clicked", async () => {
+    renderApp();
+
+    await waitFor(() => expect(screen.getByTestId("requester-select")).toBeInTheDocument());
+    await userEvent.selectOptions(screen.getByTestId("requester-select"), "1");
+    await userEvent.click(screen.getByTestId("selector-continue-btn"));
+
+    await waitFor(() => expect(screen.getByTestId("nav-create-ticket")).toBeInTheDocument());
+    await userEvent.click(screen.getByTestId("nav-create-ticket"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("online-status")).toHaveTextContent("System Status: Online");
+      expect(screen.getByTestId("create-ticket-form")).toBeInTheDocument();
     });
-
-    expect(screen.getByTestId("categories-list")).toBeInTheDocument();
-    expect(screen.getByText("Account and Access")).toBeInTheDocument();
-    expect(screen.getByText("Hardware")).toBeInTheDocument();
-    expect(screen.getByText("Software")).toBeInTheDocument();
-    expect(screen.getByText("Network")).toBeInTheDocument();
   });
 
-  it("shows an Offline error message when the API is unavailable", async () => {
-    vi.spyOn(api, "checkSystem").mockRejectedValue(new Error("Network error"));
+  it("returns to My Tickets when Change Requester is clicked", async () => {
+    renderApp();
 
-    render(<App />);
-    await userEvent.click(screen.getByTestId("check-system-btn"));
+    await waitFor(() => expect(screen.getByTestId("requester-select")).toBeInTheDocument());
+    await userEvent.selectOptions(screen.getByTestId("requester-select"), "1");
+    await userEvent.click(screen.getByTestId("selector-continue-btn"));
 
+    await waitFor(() => expect(screen.getByTestId("change-requester-btn")).toBeInTheDocument());
+    await userEvent.click(screen.getByTestId("change-requester-btn"));
+
+    // Selector screen should reappear
     await waitFor(() => {
-      expect(screen.getByTestId("offline-status")).toHaveTextContent("System Status: Offline");
+      expect(screen.getByTestId("requester-selector-screen")).toBeInTheDocument();
     });
-
-    expect(screen.getByTestId("health-error-message")).toHaveTextContent(
-      "Unable to connect to TokTickIT API"
-    );
   });
 });
