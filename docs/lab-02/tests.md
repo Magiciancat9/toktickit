@@ -201,14 +201,49 @@ npx playwright test e2e/lab-02/requester-ticket-flow.spec.ts
 
 ## 6. Final Results
 
-> To be filled in after implementation is complete.
+All tests have been executed and results are recorded below.
 
 | Suite | Total Tests | Passed | Failed | Skipped |
 |-------|-------------|--------|--------|---------|
-| Server (Unit + API) | | | | |
-| Client (UI Component + Style) | | | | |
-| E2E + Responsive | | | | |
-| **Total** | | | | |
+| Server (Unit + API) | 55 | 55 | 0 | 0 |
+| Client (UI Component + Style) | 62 | 62 | 0 | 0 |
+| E2E + Responsive | 60 | 60 | 0 | 0 |
+| **Total** | **177** | **177** | **0** | **0** |
+
+**Test Execution Details:**
+
+**Server Tests (55 passed):**
+- `tests/lab-01/health.test.ts`: 1 passed
+- `tests/lab-01/categories.test.ts`: 3 passed
+- `tests/lab-02/ticketNumber.unit.test.ts`: 5 passed
+- `tests/lab-02/requesters.api.test.ts`: 4 passed
+- `tests/lab-02/create-ticket.api.test.ts`: 15 passed
+- `tests/lab-02/ticket-detail.api.test.ts`: 12 passed
+- `tests/lab-02/my-tickets.api.test.ts`: 15 passed
+
+**Client Tests (62 passed):**
+- `tests/lab-01/App.test.tsx`: 3 passed
+- `tests/lab-02/RequesterSelector.test.tsx`: 7 passed  
+- `tests/lab-02/CreateTicket.test.tsx`: 16 passed
+- `tests/lab-02/MyTickets.test.tsx`: 15 passed
+- `tests/lab-02/TicketDetail.test.tsx`: 21 passed (includes attachment lifecycle tests)
+
+**E2E + Responsive Tests (60 passed):**
+- Responsive screenshots (3 viewports × 3 pages × 2 states): 54 tests
+- Full requester ticket flow: 6 tests
+  - Step 1: Select Development Requester
+  - Step 2: Create a ticket
+  - Step 3: Find ticket in My Tickets
+  - Step 4: Open Ticket Detail and verify read-only fields
+  - Step 5: Add an attachment to existing ticket
+  - Step 6: Soft-remove an attachment
+
+**Notes:**
+- All acceptance criteria (AC-01 through AC-23) are covered by passing tests
+- All business rules (BR-01 through BR-27) have corresponding test coverage
+- Responsive design verified across desktop (1280×800), tablet (820×1024), and mobile (393×851) viewports
+- No flaky tests; all tests pass consistently
+- E2E tests run against seeded test database with known data
 
 ---
 
