@@ -17,7 +17,7 @@ I used Kiro IDE Agent throughout Lab 2 to implement the full requester-facing ti
 | 7 | Responsive, Visual & E2E Testing | Run responsive, visual, and E2E testing. This issue covers: Playwright screenshots at desktop/tablet/mobile, the visual checklist, and an end-to-end Requester flow test. | AI helped generate the screenshot script and draft the E2E test covering the full Requester flow. | I manually reviewed screenshots against ui-spec.md, ran the E2E test to confirm it passed consistently, and fixed a mobile layout issue AI's draft missed. |
 | 8 | fixing | - | - | I would tell that this part was make mistake a select the wrong desination before merge and didn't see it so this part I didn't use ai |
 | 9 | Fixing_ui | I tell ai that there a little bit UI that I want to adjust to meet the required specifications.| It make the UI get more look like the requirement|I check the UI and test by try to create ticket. |
-
+| 10 | Docs/lab2 evidence| I told AI  that to do the ai_use.md,reviewer.md,README.md for me after do all of this process above|The AI hepled lot by create what I do before and also tell the proccess | I checked the evidence and check how correctly that Ai agnet do.|
 ---
 
 ## Reflection

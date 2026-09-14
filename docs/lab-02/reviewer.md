@@ -19,7 +19,7 @@
 | [#26](https://github.com/Magiciancat9/toktickit/pull/26) | feature/lab2-responsive-e2e | Approved by @martinvadre |
 | [#29](https://github.com/Magiciancat9/toktickit/pull/29) | fixing(This the pr that are mistake it my own fault) | Approved by @martinvadre |
 | [#32](https://github.com/Magiciancat9/toktickit/pull/32) | Fixing/lab2 | Approved by @martinvadre |
-
+| [#32](https://github.com/Magiciancat9/toktickit/pull/34) | docs/lab2-evidence | Approved by @martinvadre |
 ---
 
 ## Review comments I received and my responses
@@ -124,6 +124,17 @@ My response:
 My response:
 
 > [Thank you, you can merge for me now.]
+
+### Docs/lab2 evidence - PR #34
+
+[martinvadre] commented:
+
+> [great arrangement, easy to read and everything, approved]
+
+My response:
+
+> [Thank you, You can merge for me now.]
+
 
 ---
 
