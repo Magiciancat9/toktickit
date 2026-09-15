@@ -5,8 +5,10 @@ import {
   createTicket,
   getTickets,
   getTicketByNumber,
+  setProblemResolved,
 } from "../controllers/tickets.controller.js";
 import { uploadAttachment } from "../controllers/attachments.controller.js";
+import { postComment, getComments } from "../controllers/comments.controller.js";
 import { loadAuthenticatedUser, requireAuth } from "../middleware/auth.middleware.js";
 
 // Store uploaded files in server/uploads/ with a unique name
@@ -61,5 +63,14 @@ router.post(
   },
   uploadAttachment
 );
+
+// POST /api/tickets/:ticketNumber/comments — post a Public Comment on owned ticket
+router.post("/:ticketNumber/comments", postComment);
+
+// GET /api/tickets/:ticketNumber/comments — list Public Comments on owned ticket
+router.get("/:ticketNumber/comments", getComments);
+
+// PATCH /api/tickets/:ticketNumber/problem-resolved — Requester indicates problem appears resolved
+router.patch("/:ticketNumber/problem-resolved", setProblemResolved);
 
 export default router;

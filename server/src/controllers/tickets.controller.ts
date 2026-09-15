@@ -335,3 +335,75 @@ export const createTicket = async (req: Request, res: Response): Promise<void> =
     });
   }
 };
+
+// ── PATCH /api/tickets/:ticketNumber/problem-resolved ──────────────────────
+
+/**
+ * PATCH /api/tickets/:ticketNumber/problem-resolved
+ * Requester indicates that the problem appears resolved.
+ * This does NOT change the ticket status to RESOLVED.
+ * IT Staff/Admin must formally resolve the ticket through status workflow.
+ */
+export const setProblemResolved = async (req: Request, res: Response): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
+  const prisma = getPrisma();
+  const { ticketNumber } = req.params;
+  const problemResolvedByRequester = req.body.problemResolvedByRequester;
+
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required." },
+    });
+    return;
+  }
+
+  // Validation: problemResolvedByRequester must be a boolean
+  if (typeof problemResolvedByRequester !== "boolean") {
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "problemResolvedByRequester must be a boolean value.",
+      },
+    });
+    return;
+  }
+
+  try {
+    const ticket = await prisma.ticket.findUnique({ where: { ticketNumber } });
+    
+    if (!ticket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    // Authorization: only the ticket owner (Requester) can set this flag
+    if (ticket.requesterId !== authReq.user.id) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    // Update the flag (does NOT change status)
+    const updated = await prisma.ticket.update({
+      where: { ticketNumber },
+      data: { problemResolvedByRequester },
+      select: {
+        ticketNumber: true,
+        problemResolvedByRequester: true,
+      },
+    });
+
+    res.status(200).json({
+      data: {
+        ticket: {
+          ticketNumber: updated.ticketNumber,
+          problemResolvedByRequester: updated.problemResolvedByRequester,
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Failed to update problem resolved flag:", err);
+    res.status(500).json({
+      error: { code: "SERVER_ERROR", message: "Unable to update ticket. Please try again later." },
+    });
+  }
+};

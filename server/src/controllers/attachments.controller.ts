@@ -6,24 +6,26 @@ import {
   isAllowedFileSize,
   MAX_ACTIVE_ATTACHMENTS,
 } from "../utils/attachmentValidation.js";
+import { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 
 // ── POST /api/tickets/:ticketNumber/attachments ────────────────────────────
 
 /**
  * Uploads a file attachment to an existing Ticket.
  * Validates file type, size, and active attachment count.
+ * Ownership derived from authenticated session.
  * If the ticket exists but upload validation fails, the ticket is NOT rolled back.
  */
 export const uploadAttachment = async (req: Request, res: Response): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
   const prisma = getPrisma();
   const { ticketNumber } = req.params;
-  const requesterId = Number(req.body.requesterId);
   const file = req.file as Express.Multer.File | undefined;
 
-  if (!requesterId || isNaN(requesterId)) {
+  if (!authReq.user) {
     if (file?.path) fs.unlink(file.path, () => {});
-    res.status(400).json({
-      error: { code: "VALIDATION_ERROR", message: "requesterId is required." },
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required." },
     });
     return;
   }
@@ -58,9 +60,11 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
       res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
       return;
     }
-    if (ticket.requesterId !== requesterId) {
+    
+    // Authorization: only the ticket owner (requester) can upload attachments
+    if (ticket.requesterId !== authReq.user.id) {
       fs.unlink(file.path, () => {});
-      res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not own this ticket." } });
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
       return;
     }
 
@@ -111,16 +115,16 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
 /**
  * Downloads the file for an active attachment.
  * Returns 410 Gone if the attachment has been soft-removed.
- * Returns 403 if the requesting Requester does not own the ticket.
+ * Authorization: owner (Requester), IT Staff, or Administrator can download.
  */
 export const downloadAttachment = async (req: Request, res: Response): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
   const prisma = getPrisma();
   const id = Number(req.params.id);
-  const requesterId = Number(req.query.requesterId);
 
-  if (!req.query.requesterId || isNaN(requesterId)) {
-    res.status(400).json({
-      error: { code: "VALIDATION_ERROR", message: "requesterId is required." },
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required." },
     });
     return;
   }
@@ -143,8 +147,12 @@ export const downloadAttachment = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    if (attachment.ticket.requesterId !== requesterId) {
-      res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not own this attachment." } });
+    // Authorization: owner, IT Staff, or Admin can download
+    const isOwner = attachment.ticket.requesterId === authReq.user.id;
+    const isStaffOrAdmin = authReq.user.role === "IT_STAFF" || authReq.user.role === "ADMINISTRATOR";
+    
+    if (!isOwner && !isStaffOrAdmin) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Attachment not found." } });
       return;
     }
 
@@ -180,17 +188,18 @@ export const downloadAttachment = async (req: Request, res: Response): Promise<v
  * Soft-removes an attachment. Sets removedAt and removalReason.
  * The file is no longer downloadable after removal.
  * The metadata row is retained for audit purposes.
+ * Authorization: only the ticket owner (Requester) can remove attachments.
  */
 export const removeAttachment = async (req: Request, res: Response): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
   const prisma = getPrisma();
   const id = Number(req.params.id);
-  const requesterId = Number(req.body.requesterId);
   const removalReason =
     typeof req.body.removalReason === "string" ? req.body.removalReason.trim() : "";
 
-  if (!req.body.requesterId || isNaN(requesterId)) {
-    res.status(400).json({
-      error: { code: "VALIDATION_ERROR", message: "requesterId is required." },
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required." },
     });
     return;
   }
@@ -216,8 +225,9 @@ export const removeAttachment = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    if (attachment.ticket.requesterId !== requesterId) {
-      res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not own this attachment." } });
+    // Authorization: only the ticket owner can remove attachments
+    if (attachment.ticket.requesterId !== authReq.user.id) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Attachment not found." } });
       return;
     }
 
