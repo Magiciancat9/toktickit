@@ -1,4 +1,5 @@
 import { getPrisma } from "../src/prisma.js";
+import { hashPassword } from "../src/utils/password.js";
 
 // ---------------------------------------------------------------------------
 // Seed data definitions
@@ -21,15 +22,25 @@ const RELATED_SYSTEMS = [
   "Printer",
 ];
 
-const ACTIVE_REQUESTERS = [
-  { name: "Jennifer Anderson", email: "jennifer.anderson@example.com" },
-  { name: "Michael Brown",    email: "michael.brown@example.com" },
-  { name: "Sarah Johnson",    email: "sarah.johnson@example.com" },
-  { name: "David Lee",        email: "david.lee@example.com" },
-];
+// Lab 3: Users with roles and authentication.
+// Default password for all test users: "TempPass123!" (must be changed on first login).
+const DEFAULT_PASSWORD = "TempPass123!";
 
-const INACTIVE_REQUESTERS = [
-  { name: "Alex Turner", email: "alex.turner@example.com" },
+const USERS = [
+  // Requesters (active)
+  { name: "Jennifer Anderson", email: "jennifer.anderson@example.com", role: "REQUESTER", isActive: true },
+  { name: "Michael Brown",     email: "michael.brown@example.com",    role: "REQUESTER", isActive: true },
+  { name: "Sarah Johnson",     email: "sarah.johnson@example.com",    role: "REQUESTER", isActive: true },
+  { name: "David Lee",         email: "david.lee@example.com",        role: "REQUESTER", isActive: true },
+  
+  // Requester (inactive)
+  { name: "Alex Turner", email: "alex.turner@example.com", role: "REQUESTER", isActive: false },
+  
+  // IT Staff
+  { name: "IT Staff Member", email: "it.staff@example.com", role: "IT_STAFF", isActive: true },
+  
+  // Administrator
+  { name: "System Administrator", email: "admin@example.com", role: "ADMINISTRATOR", isActive: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -62,26 +73,30 @@ async function main() {
     console.log(`  ✓ RelatedSystem: ${name}`);
   }
 
-  // 3. Active Requesters
-  console.log("Seeding active requesters...");
-  for (const { name, email } of ACTIVE_REQUESTERS) {
-    await prisma.requesterUser.upsert({
+  // 3. Users (Lab 3: replaces RequesterUser, adds IT Staff and Administrator)
+  console.log("Seeding users...");
+  const passwordHash = await hashPassword(DEFAULT_PASSWORD);
+  
+  for (const { name, email, role, isActive } of USERS) {
+    await prisma.user.upsert({
       where:  { email },
-      update: { name, isActive: true },
-      create: { name, email, isActive: true },
+      update: { 
+        name, 
+        role: role as any,
+        isActive,
+        // Note: Do not update passwordHash or requiresPasswordChange on update
+        // to preserve user's existing password and password-change status
+      },
+      create: { 
+        name, 
+        email,
+        passwordHash,
+        role: role as any,
+        isActive,
+        requiresPasswordChange: true, // All seed users must change password on first login
+      },
     });
-    console.log(`  ✓ Requester (active): ${name}`);
-  }
-
-  // 4. Inactive Requesters
-  console.log("Seeding inactive requesters...");
-  for (const { name, email } of INACTIVE_REQUESTERS) {
-    await prisma.requesterUser.upsert({
-      where:  { email },
-      update: { name, isActive: false },
-      create: { name, email, isActive: false },
-    });
-    console.log(`  ✓ Requester (inactive): ${name}`);
+    console.log(`  ✓ User (${role}, ${isActive ? 'active' : 'inactive'}): ${name}`);
   }
 
   console.log("\nSeed complete.");
