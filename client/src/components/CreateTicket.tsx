@@ -152,7 +152,6 @@ export function CreateTicket({ onCancel }: CreateTicketProps) {
     try {
       // 1. Create the ticket
       const ticket = await createTicket({
-        requesterId:       currentRequester.id,
         categoryId:        Number(categoryId),
         relatedSystemId:   Number(relatedSystemId),
         summary:           summary.trim(),
@@ -164,7 +163,7 @@ export function CreateTicket({ onCancel }: CreateTicketProps) {
       const uploadErrors: string[] = [];
       for (const { file } of validFiles) {
         try {
-          await uploadAttachment(ticket.ticketNumber, currentRequester.id, file);
+          await uploadAttachment(ticket.ticketNumber, file);
         } catch (err) {
           uploadErrors.push(
             `"${file.name}" could not be uploaded: ${err instanceof Error ? err.message : "unknown error"}`

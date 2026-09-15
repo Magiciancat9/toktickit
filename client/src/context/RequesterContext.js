@@ -1,13 +1,27 @@
 import { jsx as _jsx } from "react/jsx-runtime";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import { useAuth } from "./AuthContext.js";
 const RequesterContext = createContext(null);
 /**
  * Provides the selected Development Requester testing context to the whole app.
- * This is NOT authentication — it is a Lab 2 testing mechanism only.
- * No passwords, sessions, or tokens are involved.
+ * Lab 3: Automatically sets the authenticated user as the current requester.
  */
 export function RequesterProvider({ children }) {
+    const { user } = useAuth();
     const [currentRequester, setCurrentRequester] = useState(null);
+    // Lab 3: Auto-set authenticated user as current requester
+    useEffect(() => {
+        if (user && user.role === "REQUESTER") {
+            setCurrentRequester({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+            });
+        }
+        else if (!user) {
+            setCurrentRequester(null);
+        }
+    }, [user]);
     function selectRequester(r) {
         setCurrentRequester(r);
     }

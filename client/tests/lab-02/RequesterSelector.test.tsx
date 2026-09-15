@@ -3,14 +3,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RequesterSelector } from "../../src/components/RequesterSelector.js";
 import * as api from "../../src/api.js";
-import { RequesterProvider } from "../../src/context/RequesterContext.js";
+import { TestProviders } from "../test-utils.js";
 
-// Helper: wrap the component in RequesterProvider (required by useRequester hook)
+// Helper: wrap the component in test providers (required by useRequester hook)
 function renderSelector() {
   return render(
-    <RequesterProvider>
+    <TestProviders>
       <RequesterSelector />
-    </RequesterProvider>
+    </TestProviders>
   );
 }
 

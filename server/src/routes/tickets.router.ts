@@ -7,6 +7,7 @@ import {
   getTicketByNumber,
 } from "../controllers/tickets.controller.js";
 import { uploadAttachment } from "../controllers/attachments.controller.js";
+import { loadAuthenticatedUser, requireAuth } from "../middleware/auth.middleware.js";
 
 // Store uploaded files in server/uploads/ with a unique name
 const storage = multer.diskStorage({
@@ -27,13 +28,17 @@ const upload = multer({
 
 const router = Router();
 
-// GET /api/tickets — list tickets for a Requester (search/filter/sort/pagination)
+// Lab 3: All ticket routes require authentication
+// Load authenticated user first
+router.use(requireAuth, loadAuthenticatedUser);
+
+// GET /api/tickets — list tickets for authenticated Requester (My Tickets)
 router.get("/", getTickets);
 
 // GET /api/tickets/:ticketNumber — get one owned Ticket with attachments
 router.get("/:ticketNumber", getTicketByNumber);
 
-// POST /api/tickets — create a new ticket (JSON body, no file)
+// POST /api/tickets — create a new ticket (requesterId from session)
 router.post("/", createTicket);
 
 // POST /api/tickets/:ticketNumber/attachments — upload one file to an existing ticket

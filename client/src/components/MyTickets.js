@@ -39,15 +39,12 @@ export function MyTickets({ onCreateTicket, onOpenTicket }) {
     useEffect(() => {
         fetchCategories().then(setCategories).catch(() => { });
     }, []);
-    // Load tickets whenever filters/requester change
+    // Load tickets whenever filters change
     const loadTickets = useCallback(async () => {
-        if (!currentRequester)
-            return;
         setListState("loading");
         setErrorMsg(null);
         try {
             const result = await fetchTickets({
-                requesterId: currentRequester.id,
                 search: search || undefined,
                 category: category || undefined,
                 priority: priority || undefined,
@@ -68,7 +65,7 @@ export function MyTickets({ onCreateTicket, onOpenTicket }) {
             setErrorMsg(err instanceof Error ? err.message : "Unable to load tickets.");
             setListState("error");
         }
-    }, [currentRequester, search, category, priority, status, sort, order, page]);
+    }, [search, category, priority, status, sort, order, page]);
     useEffect(() => { void loadTickets(); }, [loadTickets]);
     function toggleSort(field) {
         if (sort === field) {

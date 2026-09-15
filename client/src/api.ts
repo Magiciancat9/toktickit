@@ -37,7 +37,6 @@ export interface Ticket {
 }
 
 export interface CreateTicketPayload {
-  requesterId:       number;
   categoryId:        number;
   relatedSystemId:   number;
   summary:           string;
@@ -73,7 +72,9 @@ export interface HealthResponse {
  * This is a Lab 2 testing mechanism, not real authentication.
  */
 export async function fetchRequesters(): Promise<Requester[]> {
-  const response = await fetch(`${API_URL}/api/requesters`);
+  const response = await fetch(`${API_URL}/api/requesters`, {
+    credentials: "include"
+  });
   if (!response.ok) throw new Error(`Failed to load requesters: ${response.status}`);
   return response.json();
 }
@@ -84,7 +85,9 @@ export async function fetchRequesters(): Promise<Requester[]> {
  * Fetches all active Categories from GET /api/categories.
  */
 export async function fetchCategories(): Promise<Category[]> {
-  const response = await fetch(`${API_URL}/api/categories`);
+  const response = await fetch(`${API_URL}/api/categories`, {
+    credentials: "include"
+  });
   if (!response.ok) throw new Error(`Failed to load categories: ${response.status}`);
   return response.json();
 }
@@ -93,7 +96,9 @@ export async function fetchCategories(): Promise<Category[]> {
  * Fetches all active Related Systems from GET /api/related-systems.
  */
 export async function fetchRelatedSystems(): Promise<RelatedSystem[]> {
-  const response = await fetch(`${API_URL}/api/related-systems`);
+  const response = await fetch(`${API_URL}/api/related-systems`, {
+    credentials: "include"
+  });
   if (!response.ok) throw new Error(`Failed to load related systems: ${response.status}`);
   return response.json();
 }
@@ -101,7 +106,9 @@ export async function fetchRelatedSystems(): Promise<RelatedSystem[]> {
 // ── Health ─────────────────────────────────────────────────────────────────
 
 export async function fetchHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${API_URL}/api/health`);
+  const response = await fetch(`${API_URL}/api/health`, {
+    credentials: "include"
+  });
   if (!response.ok) throw new Error(`Backend unavailable with status ${response.status}`);
   return response.json();
 }
@@ -117,7 +124,6 @@ export async function checkSystem(): Promise<SystemStatus> {
 // ── Tickets ────────────────────────────────────────────────────────────────
 
 export interface TicketListParams {
-  requesterId: number;
   search?:     string;
   category?:   string;
   priority?:   Priority;
@@ -141,11 +147,11 @@ export interface TicketListResponse {
 }
 
 /**
- * GET /api/tickets — returns the Requester's own tickets with search/filter/sort/pagination.
+ * GET /api/tickets — returns the authenticated Requester's own tickets with search/filter/sort/pagination.
+ * Requires valid session cookie.
  */
 export async function fetchTickets(params: TicketListParams): Promise<TicketListResponse> {
   const qs = new URLSearchParams();
-  qs.set("requesterId", String(params.requesterId));
   if (params.search)   qs.set("search",   params.search);
   if (params.category) qs.set("category", params.category);
   if (params.priority) qs.set("priority", params.priority);
@@ -155,7 +161,9 @@ export async function fetchTickets(params: TicketListParams): Promise<TicketList
   if (params.page)     qs.set("page",     String(params.page));
   if (params.pageSize) qs.set("pageSize", String(params.pageSize));
 
-  const response = await fetch(`${API_URL}/api/tickets?${qs.toString()}`);
+  const response = await fetch(`${API_URL}/api/tickets?${qs.toString()}`, {
+    credentials: "include"
+  });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(body?.error?.message ?? `Failed to load tickets: ${response.status}`);
@@ -165,13 +173,14 @@ export async function fetchTickets(params: TicketListParams): Promise<TicketList
 
 /**
  * GET /api/tickets/:ticketNumber — returns one owned ticket with attachments.
+ * Requires valid session cookie.
  */
 export async function fetchTicketByNumber(
-  ticketNumber: string,
-  requesterId: number
+  ticketNumber: string
 ): Promise<Ticket> {
   const response = await fetch(
-    `${API_URL}/api/tickets/${ticketNumber}?requesterId=${requesterId}`
+    `${API_URL}/api/tickets/${ticketNumber}`,
+    { credentials: "include" }
   );
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
@@ -181,14 +190,16 @@ export async function fetchTicketByNumber(
 }
 
 /**
- * POST /api/tickets — creates a new ticket for the selected Requester.
+ * POST /api/tickets — creates a new ticket for the authenticated Requester.
+ * Requires valid session cookie.
  * Throws with parsed field errors on 400 validation failure.
  */
 export async function createTicket(payload: CreateTicketPayload): Promise<Ticket> {
   const response = await fetch(`${API_URL}/api/tickets`, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(payload),
+    method:      "POST",
+    headers:     { "Content-Type": "application/json" },
+    body:        JSON.stringify(payload),
+    credentials: "include"
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
@@ -203,20 +214,23 @@ export async function createTicket(payload: CreateTicketPayload): Promise<Ticket
 
 /**
  * POST /api/tickets/:ticketNumber/attachments — uploads one file.
+ * Requires valid session cookie.
  * Returns attachment metadata on success.
  */
 export async function uploadAttachment(
   ticketNumber: string,
-  requesterId: number,
   file: File
 ): Promise<AttachmentMeta> {
   const formData = new FormData();
-  formData.append("requesterId", String(requesterId));
   formData.append("file", file);
 
   const response = await fetch(
     `${API_URL}/api/tickets/${ticketNumber}/attachments`,
-    { method: "POST", body: formData }
+    { 
+      method: "POST", 
+      body: formData,
+      credentials: "include"
+    }
   );
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
@@ -227,17 +241,18 @@ export async function uploadAttachment(
 
 /**
  * PATCH /api/attachments/:id/remove — soft-removes an attachment.
+ * Requires valid session cookie.
  * Requires a removalReason of at least 5 characters.
  */
 export async function removeAttachment(
   attachmentId: number,
-  requesterId: number,
   removalReason: string
 ): Promise<AttachmentMeta> {
   const response = await fetch(`${API_URL}/api/attachments/${attachmentId}/remove`, {
-    method:  "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ requesterId, removalReason }),
+    method:      "PATCH",
+    headers:     { "Content-Type": "application/json" },
+    body:        JSON.stringify({ removalReason }),
+    credentials: "include"
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
@@ -249,11 +264,11 @@ export async function removeAttachment(
 /**
  * Returns the URL to download an active attachment.
  * The browser navigates to this URL — no fetch needed.
+ * Session cookie will be sent automatically by the browser.
  * Blocked by the backend (410) if the attachment has been soft-removed.
  */
 export function getAttachmentDownloadUrl(
-  attachmentId: number,
-  requesterId: number
+  attachmentId: number
 ): string {
-  return `${API_URL}/api/attachments/${attachmentId}/download?requesterId=${requesterId}`;
+  return `${API_URL}/api/attachments/${attachmentId}/download`;
 }

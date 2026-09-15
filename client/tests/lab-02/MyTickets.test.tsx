@@ -3,7 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MyTickets } from "../../src/components/MyTickets.js";
 import * as api from "../../src/api.js";
-import { RequesterProvider, useRequester } from "../../src/context/RequesterContext.js";
+import { useRequester } from "../../src/context/RequesterContext.js";
+import { TestProviders } from "../test-utils.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -46,9 +47,9 @@ function renderMyTickets(
     return <MyTickets onCreateTicket={onCreateTicket} onOpenTicket={onOpenTicket} />;
   }
   return render(
-    <RequesterProvider>
+    <TestProviders>
       <Seeder />
-    </RequesterProvider>
+    </TestProviders>
   );
 }
 
@@ -197,10 +198,8 @@ describe("MyTickets component", () => {
     const { unmount } = renderMyTickets(MOCK_REQUESTER_A);
     await waitFor(() => expect(screen.getByTestId("tickets-table")).toBeInTheDocument());
 
-    const callsWithA = spy.mock.calls.filter(
-      c => c[0].requesterId === MOCK_REQUESTER_A.id
-    ).length;
-    expect(callsWithA).toBeGreaterThan(0);
+    const callsBeforeUnmount = spy.mock.calls.length;
+    expect(callsBeforeUnmount).toBeGreaterThan(0);
 
     unmount();
 
@@ -212,10 +211,8 @@ describe("MyTickets component", () => {
     renderMyTickets(MOCK_REQUESTER_B);
     await waitFor(() => expect(screen.getByTestId("tickets-table")).toBeInTheDocument());
 
-    const callsWithB = spy.mock.calls.filter(
-      c => c[0].requesterId === MOCK_REQUESTER_B.id
-    ).length;
-    expect(callsWithB).toBeGreaterThan(0);
+    const callsAfterSecondRender = spy.mock.calls.length;
+    expect(callsAfterSecondRender).toBeGreaterThan(callsBeforeUnmount);
   });
 
   // ── Pagination ─────────────────────────────────────────────────────────

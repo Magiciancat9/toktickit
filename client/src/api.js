@@ -6,7 +6,9 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
  * This is a Lab 2 testing mechanism, not real authentication.
  */
 export async function fetchRequesters() {
-    const response = await fetch(`${API_URL}/api/requesters`);
+    const response = await fetch(`${API_URL}/api/requesters`, {
+        credentials: "include"
+    });
     if (!response.ok)
         throw new Error(`Failed to load requesters: ${response.status}`);
     return response.json();
@@ -16,7 +18,9 @@ export async function fetchRequesters() {
  * Fetches all active Categories from GET /api/categories.
  */
 export async function fetchCategories() {
-    const response = await fetch(`${API_URL}/api/categories`);
+    const response = await fetch(`${API_URL}/api/categories`, {
+        credentials: "include"
+    });
     if (!response.ok)
         throw new Error(`Failed to load categories: ${response.status}`);
     return response.json();
@@ -25,14 +29,18 @@ export async function fetchCategories() {
  * Fetches all active Related Systems from GET /api/related-systems.
  */
 export async function fetchRelatedSystems() {
-    const response = await fetch(`${API_URL}/api/related-systems`);
+    const response = await fetch(`${API_URL}/api/related-systems`, {
+        credentials: "include"
+    });
     if (!response.ok)
         throw new Error(`Failed to load related systems: ${response.status}`);
     return response.json();
 }
 // ── Health ─────────────────────────────────────────────────────────────────
 export async function fetchHealth() {
-    const response = await fetch(`${API_URL}/api/health`);
+    const response = await fetch(`${API_URL}/api/health`, {
+        credentials: "include"
+    });
     if (!response.ok)
         throw new Error(`Backend unavailable with status ${response.status}`);
     return response.json();
@@ -45,11 +53,11 @@ export async function checkSystem() {
     return { online: true, categories };
 }
 /**
- * GET /api/tickets — returns the Requester's own tickets with search/filter/sort/pagination.
+ * GET /api/tickets — returns the authenticated Requester's own tickets with search/filter/sort/pagination.
+ * Requires valid session cookie.
  */
 export async function fetchTickets(params) {
     const qs = new URLSearchParams();
-    qs.set("requesterId", String(params.requesterId));
     if (params.search)
         qs.set("search", params.search);
     if (params.category)
@@ -66,7 +74,9 @@ export async function fetchTickets(params) {
         qs.set("page", String(params.page));
     if (params.pageSize)
         qs.set("pageSize", String(params.pageSize));
-    const response = await fetch(`${API_URL}/api/tickets?${qs.toString()}`);
+    const response = await fetch(`${API_URL}/api/tickets?${qs.toString()}`, {
+        credentials: "include"
+    });
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         throw new Error(body?.error?.message ?? `Failed to load tickets: ${response.status}`);
@@ -75,9 +85,10 @@ export async function fetchTickets(params) {
 }
 /**
  * GET /api/tickets/:ticketNumber — returns one owned ticket with attachments.
+ * Requires valid session cookie.
  */
-export async function fetchTicketByNumber(ticketNumber, requesterId) {
-    const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}?requesterId=${requesterId}`);
+export async function fetchTicketByNumber(ticketNumber) {
+    const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}`, { credentials: "include" });
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         throw new Error(body?.error?.message ?? `Failed to load ticket: ${response.status}`);
@@ -85,7 +96,8 @@ export async function fetchTicketByNumber(ticketNumber, requesterId) {
     return response.json();
 }
 /**
- * POST /api/tickets — creates a new ticket for the selected Requester.
+ * POST /api/tickets — creates a new ticket for the authenticated Requester.
+ * Requires valid session cookie.
  * Throws with parsed field errors on 400 validation failure.
  */
 export async function createTicket(payload) {
@@ -93,6 +105,7 @@ export async function createTicket(payload) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        credentials: "include"
     });
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
@@ -105,13 +118,17 @@ export async function createTicket(payload) {
 // ── Attachments ────────────────────────────────────────────────────────────
 /**
  * POST /api/tickets/:ticketNumber/attachments — uploads one file.
+ * Requires valid session cookie.
  * Returns attachment metadata on success.
  */
-export async function uploadAttachment(ticketNumber, requesterId, file) {
+export async function uploadAttachment(ticketNumber, file) {
     const formData = new FormData();
-    formData.append("requesterId", String(requesterId));
     formData.append("file", file);
-    const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}/attachments`, { method: "POST", body: formData });
+    const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}/attachments`, {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+    });
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         throw new Error(body?.error?.message ?? `Upload failed: ${response.status}`);
@@ -120,13 +137,15 @@ export async function uploadAttachment(ticketNumber, requesterId, file) {
 }
 /**
  * PATCH /api/attachments/:id/remove — soft-removes an attachment.
+ * Requires valid session cookie.
  * Requires a removalReason of at least 5 characters.
  */
-export async function removeAttachment(attachmentId, requesterId, removalReason) {
+export async function removeAttachment(attachmentId, removalReason) {
     const response = await fetch(`${API_URL}/api/attachments/${attachmentId}/remove`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requesterId, removalReason }),
+        body: JSON.stringify({ removalReason }),
+        credentials: "include"
     });
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
@@ -137,8 +156,9 @@ export async function removeAttachment(attachmentId, requesterId, removalReason)
 /**
  * Returns the URL to download an active attachment.
  * The browser navigates to this URL — no fetch needed.
+ * Session cookie will be sent automatically by the browser.
  * Blocked by the backend (410) if the attachment has been soft-removed.
  */
-export function getAttachmentDownloadUrl(attachmentId, requesterId) {
-    return `${API_URL}/api/attachments/${attachmentId}/download?requesterId=${requesterId}`;
+export function getAttachmentDownloadUrl(attachmentId) {
+    return `${API_URL}/api/attachments/${attachmentId}/download`;
 }
