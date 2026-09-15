@@ -106,9 +106,8 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
   // ── Load ticket ────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!currentRequester) return;
     setDetailState("loading");
-    fetchTicketByNumber(ticketNumber, currentRequester.id)
+    fetchTicketByNumber(ticketNumber)
       .then((t) => {
         setTicket(t);
         setAttachments((t as Ticket & { attachments?: AttachmentMeta[] }).attachments ?? []);
@@ -118,13 +117,13 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
         setErrorMsg(err.message);
         setDetailState("error");
       });
-  }, [ticketNumber, currentRequester]);
+  }, [ticketNumber]);
 
   // ── Upload ─────────────────────────────────────────────────────────────
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !ticket || !currentRequester) return;
+    if (!file || !ticket) return;
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     setUploadError(null);
@@ -140,7 +139,7 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
 
     setUploadingFile(file.name);
     try {
-      const meta = await uploadAttachment(ticketNumber, currentRequester.id, file);
+      const meta = await uploadAttachment(ticketNumber, file);
       setAttachments((prev) => [...prev, meta]);
     } catch (err) {
       setUploadError(
@@ -168,7 +167,7 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
   }
 
   async function confirmRemove() {
-    if (!removeModal || !currentRequester) return;
+    if (!removeModal) return;
     if (removeModal.reason.trim().length < 5) {
       setRemoveModal((m) => m ? { ...m, error: "Reason must be at least 5 characters." } : m);
       return;
@@ -177,7 +176,6 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
     try {
       const updated = await removeAttachment(
         removeModal.attachmentId,
-        currentRequester.id,
         removeModal.reason.trim()
       );
       setAttachments((prev) =>
@@ -404,7 +402,7 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
                 </div>
                 <div className="d-flex gap-2">
                   <a
-                    href={getAttachmentDownloadUrl(att.id, currentRequester!.id)}
+                    href={getAttachmentDownloadUrl(att.id)}
                     className="btn btn-sm btn-outline-secondary"
                     target="_blank"
                     rel="noreferrer"

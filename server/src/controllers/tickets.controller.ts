@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { getPrisma } from "../prisma.js";
 import { generateTicketNumber } from "../utils/ticketNumber.js";
+import { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 
 const VALID_PRIORITIES = ["LOW", "MEDIUM", "HIGH"] as const;
 type Priority = typeof VALID_PRIORITIES[number];
@@ -28,28 +29,31 @@ interface CreateTicketBody {
  * sort field/direction, page number, and page size.
  * Ownership is enforced — only tickets belonging to requesterId are returned.
  */
+/**
+ * GET /api/tickets — List tickets owned by authenticated Requester (My Tickets)
+ * Lab 3: Requires authentication, returns only requester's own tickets.
+ */
 export const getTickets = async (req: Request, res: Response): Promise<void> => {
   const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
 
-  // ── Parse + validate requesterId ──────────────────────────────────────
-  const requesterId = Number(req.query.requesterId);
-  if (!req.query.requesterId || isNaN(requesterId)) {
-    res.status(400).json({
-      error: { code: "VALIDATION_ERROR", message: "requesterId query parameter is required." },
+  // Lab 3: requesterId comes from authenticated session, not query parameter
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
     });
     return;
   }
 
-  // Verify requester exists and is active
-  const requester = await prisma.user.findFirst({
-    where: { id: requesterId, isActive: true, role: "REQUESTER" },
-  });
-  if (!requester) {
-    res.status(400).json({
-      error: { code: "INVALID_REQUESTER", message: "Requester not found or is inactive." },
+  // Only REQUESTER role can use this endpoint
+  if (authReq.user.role !== "REQUESTER") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not have permission to access this resource" },
     });
     return;
   }
+
+  const requesterId = authReq.user.id;
 
   // ── Parse optional query params ───────────────────────────────────────
   const search   = typeof req.query.search   === "string" ? req.query.search.trim()   : undefined;
@@ -66,7 +70,9 @@ export const getTickets = async (req: Request, res: Response): Promise<void> => 
   }
 
   const statusRaw = typeof req.query.status === "string" ? req.query.status.toUpperCase() : undefined;
-  if (statusRaw && statusRaw !== "NEW") {
+  // Lab 3: Allow all ticket statuses, not just NEW
+  const validStatuses = ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"];
+  if (statusRaw && !validStatuses.includes(statusRaw)) {
     res.status(400).json({
       error: { code: "VALIDATION_ERROR", message: `Invalid status value: ${req.query.status}` },
     });
@@ -86,6 +92,7 @@ export const getTickets = async (req: Request, res: Response): Promise<void> => 
     ? pageSizeRaw : DEFAULT_PAGE_SIZE;
 
   // ── Build Prisma where clause ─────────────────────────────────────────
+  // Lab 3: BR-13 - Only return tickets where requesterId matches authenticated user
   const where: Record<string, unknown> = { requesterId };
 
   if (search) {
@@ -137,23 +144,39 @@ export const getTickets = async (req: Request, res: Response): Promise<void> => 
  * Returns a single ticket with attachments, enforcing ownership via requesterId query param.
  * Returns 403 if the ticket exists but belongs to a different Requester.
  */
+/**
+ * GET /api/tickets/:ticketNumber — Get detail of one owned ticket
+ * Lab 3: Requires authentication, only returns ticket if owned by authenticated user
+ */
 export const getTicketByNumber = async (req: Request, res: Response): Promise<void> => {
   const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
   const { ticketNumber } = req.params;
 
-  const requesterId = Number(req.query.requesterId);
-  if (!req.query.requesterId || isNaN(requesterId)) {
-    res.status(400).json({
-      error: { code: "VALIDATION_ERROR", message: "requesterId query parameter is required." },
+  // Lab 3: Authentication required
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
     });
     return;
   }
+
+  // Lab 3: Only REQUESTER role can use this endpoint
+  if (authReq.user.role !== "REQUESTER") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not have permission to access this resource" },
+    });
+    return;
+  }
+
+  const requesterId = authReq.user.id;
 
   try {
     const ticket = await prisma.ticket.findUnique({
       where: { ticketNumber },
       include: {
         requester:     { select: { id: true, name: true } },
+        owner:         { select: { id: true, name: true, role: true } },
         category:      { select: { id: true, name: true } },
         relatedSystem: { select: { id: true, name: true } },
         attachments: {
@@ -166,13 +189,10 @@ export const getTicketByNumber = async (req: Request, res: Response): Promise<vo
       },
     });
 
-    if (!ticket) {
-      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
-      return;
-    }
-    if (ticket.requesterId !== requesterId) {
-      res.status(403).json({
-        error: { code: "FORBIDDEN", message: "You do not own this ticket." },
+    // Lab 3: BR-17 - Use same generic message for 403/404 to not leak resource existence
+    if (!ticket || ticket.requesterId !== requesterId) {
+      res.status(404).json({ 
+        error: { code: "NOT_FOUND", message: "Ticket not found" } 
       });
       return;
     }
@@ -188,17 +208,35 @@ export const getTicketByNumber = async (req: Request, res: Response): Promise<vo
 
 // ── POST /api/tickets ───────────────────────────────────────────────────────
 
+/**
+ * POST /api/tickets — Create a new ticket (Lab 3: requesterId from authenticated session)
+ */
 export const createTicket = async (req: Request, res: Response): Promise<void> => {
   const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
   const body = req.body as CreateTicketBody;
+
+  // Lab 3: Authentication required
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
+    });
+    return;
+  }
+
+  // Lab 3: Only REQUESTER role can create tickets
+  if (authReq.user.role !== "REQUESTER") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "Only Requesters can create tickets" },
+    });
+    return;
+  }
+
+  // Lab 3: requesterId comes from authenticated session, not request body
+  const requesterId = authReq.user.id;
 
   // ── Validation ──────────────────────────────────────────────────────────
   const errors: Record<string, string> = {};
-
-  const requesterId = Number(body.requesterId);
-  if (!body.requesterId || isNaN(requesterId)) {
-    errors.requesterId = "Requester ID is required and must be a number.";
-  }
 
   const categoryId = Number(body.categoryId);
   if (!body.categoryId || isNaN(categoryId)) {
@@ -243,17 +281,6 @@ export const createTicket = async (req: Request, res: Response): Promise<void> =
   }
 
   try {
-    // Verify requester exists and is active
-    const requester = await prisma.user.findFirst({
-      where: { id: requesterId, isActive: true, role: "REQUESTER" },
-    });
-    if (!requester) {
-      res.status(400).json({
-        error: { code: "INVALID_REQUESTER", message: "Requester not found or is inactive." },
-      });
-      return;
-    }
-
     // Verify category exists
     const category = await prisma.category.findUnique({ where: { id: categoryId } });
     if (!category) {
@@ -277,6 +304,9 @@ export const createTicket = async (req: Request, res: Response): Promise<void> =
     // Generate unique Ticket Number
     const ticketNumber = await generateTicketNumber(prisma);
 
+    // Lab 3: Set itPriority to match requestedPriority initially
+    const itPriority = requestedPriority as Priority;
+
     // Create the ticket
     const ticket = await prisma.ticket.create({
       data: {
@@ -287,6 +317,7 @@ export const createTicket = async (req: Request, res: Response): Promise<void> =
         summary,
         description,
         requestedPriority: requestedPriority as Priority,
+        itPriority,
         status: "NEW",
       },
       include: {
