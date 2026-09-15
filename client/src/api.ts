@@ -31,6 +31,7 @@ export interface Ticket {
   ticketDate: string;
   createdAt: string;
   updatedAt: string;
+  problemResolvedByRequester?: boolean;
   requester?:     { id: number; name: string };
   category?:      { id: number; name: string };
   relatedSystem?: { id: number; name: string };
@@ -271,4 +272,84 @@ export function getAttachmentDownloadUrl(
   attachmentId: number
 ): string {
   return `${API_URL}/api/attachments/${attachmentId}/download`;
+}
+
+// ── Public Comments ─────────────────────────────────────────────────────────
+
+export type UserRole = "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+
+export interface PublicComment {
+  id: number;
+  ticketId: number;
+  authorId: number;
+  authorName: string;
+  authorRole: UserRole;
+  content: string;
+  createdAt: string;
+}
+
+/**
+ * POST /api/tickets/:ticketNumber/comments — Post a Public Comment on owned ticket
+ * Requires valid session cookie.
+ */
+export async function postComment(
+  ticketNumber: string,
+  content: string
+): Promise<PublicComment> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to post comment: ${response.status}`);
+  }
+  
+  const result = await response.json();
+  return result.data.comment;
+}
+
+/**
+ * GET /api/tickets/:ticketNumber/comments — List Public Comments on owned ticket
+ * Requires valid session cookie.
+ */
+export async function getComments(ticketNumber: string): Promise<PublicComment[]> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}/comments`, {
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to load comments: ${response.status}`);
+  }
+  
+  const result = await response.json();
+  return result.data;
+}
+
+// ── Problem Resolved ────────────────────────────────────────────────────────
+
+/**
+ * PATCH /api/tickets/:ticketNumber/problem-resolved — Requester indicates problem appears resolved
+ * Requires valid session cookie.
+ * This does NOT change the ticket status to RESOLVED.
+ */
+export async function setProblemResolved(
+  ticketNumber: string,
+  problemResolvedByRequester: boolean
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}/problem-resolved`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ problemResolvedByRequester }),
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to update ticket: ${response.status}`);
+  }
 }
