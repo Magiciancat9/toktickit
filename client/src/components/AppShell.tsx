@@ -1,26 +1,38 @@
 import { ReactNode } from "react";
-import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
 
 type Page = "my-tickets" | "create-ticket";
 
 interface AppShellProps {
-  children:    ReactNode;
+  children: ReactNode;
   activePage?: Page;
   onNavigate?: (page: Page) => void;
 }
 
 /**
- * Application shell: top navigation bar + page content area.
- * Displays the current Development Requester name and a "Change" link.
- * This is a Lab 2 testing mechanism — not real authentication.
+ * Application shell (Lab 3): top navigation bar with authenticated user display + logout.
+ * Shows role-specific navigation (Requester: My Tickets, Create Ticket).
  */
 export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
-  const { currentRequester, clearRequester } = useRequester();
+  const { user, logout } = useAuth();
 
   function navLinkStyle(page: Page): React.CSSProperties {
     return activePage === page
       ? { borderBottom: "2px solid #EAF6EF", paddingBottom: 2 }
       : {};
+  }
+
+  function getRoleBadgeColor(role: string): string {
+    switch (role) {
+      case "REQUESTER":
+        return "#3B82F6"; // Blue
+      case "IT_STAFF":
+        return "#006B3C"; // Green
+      case "ADMINISTRATOR":
+        return "#8B5CF6"; // Purple
+      default:
+        return "#6B7280"; // Gray
+    }
   }
 
   return (
@@ -56,49 +68,68 @@ export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
         </button>
 
         <div className="collapse navbar-collapse" id="main-nav">
-          {/* Left nav links */}
+          {/* Left nav links — role-specific */}
           <ul className="navbar-nav me-auto gap-1">
-            <li className="nav-item">
-              <button
-                className="nav-link text-white btn p-2 border-0"
-                style={navLinkStyle("my-tickets")}
-                onClick={() => onNavigate?.("my-tickets")}
-                data-testid="nav-my-tickets"
-                aria-current={activePage === "my-tickets" ? "page" : undefined}
-              >
-                My Tickets
-              </button>
-            </li>
-            <li className="nav-item">
-              <button
-                className="nav-link text-white btn p-2 border-0"
-                style={navLinkStyle("create-ticket")}
-                onClick={() => onNavigate?.("create-ticket")}
-                data-testid="nav-create-ticket"
-                aria-current={activePage === "create-ticket" ? "page" : undefined}
-              >
-                + Create Ticket
-              </button>
-            </li>
+            {user?.role === "REQUESTER" && (
+              <>
+                <li className="nav-item">
+                  <button
+                    className="nav-link text-white btn p-2 border-0"
+                    style={navLinkStyle("my-tickets")}
+                    onClick={() => onNavigate?.("my-tickets")}
+                    data-testid="nav-my-tickets"
+                    aria-current={activePage === "my-tickets" ? "page" : undefined}
+                  >
+                    My Tickets
+                  </button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className="nav-link text-white btn p-2 border-0"
+                    style={navLinkStyle("create-ticket")}
+                    onClick={() => onNavigate?.("create-ticket")}
+                    data-testid="nav-create-ticket"
+                    aria-current={activePage === "create-ticket" ? "page" : undefined}
+                  >
+                    + Create Ticket
+                  </button>
+                </li>
+              </>
+            )}
+            {/* IT Staff and Administrator navigation will be added in future issues */}
           </ul>
 
-          {/* Right — current requester identity display */}
-          {currentRequester && (
+          {/* Right — authenticated user display */}
+          {user && (
             <div
               className="d-flex align-items-center gap-2"
-              data-testid="current-requester-display"
+              data-testid="authenticated-user-display"
             >
               <span className="text-white" style={{ fontSize: "0.9rem" }}>
-                👤 {currentRequester.name}
+                👤 {user.name}
+              </span>
+              <span
+                style={{
+                  backgroundColor: getRoleBadgeColor(user.role),
+                  color: "white",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  padding: "2px 8px",
+                  borderRadius: "12px",
+                  textTransform: "capitalize",
+                }}
+                data-testid="user-role-badge"
+              >
+                {user.role.replace("_", " ")}
               </span>
               <button
                 type="button"
                 className="btn btn-sm btn-outline-light"
-                onClick={clearRequester}
-                data-testid="change-requester-btn"
-                aria-label="Change development requester"
+                onClick={logout}
+                data-testid="logout-btn"
+                aria-label="Logout"
               >
-                Change
+                Logout
               </button>
             </div>
           )}

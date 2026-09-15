@@ -41,8 +41,8 @@ export const getTickets = async (req: Request, res: Response): Promise<void> => 
   }
 
   // Verify requester exists and is active
-  const requester = await prisma.requesterUser.findFirst({
-    where: { id: requesterId, isActive: true },
+  const requester = await prisma.user.findFirst({
+    where: { id: requesterId, isActive: true, role: "REQUESTER" },
   });
   if (!requester) {
     res.status(400).json({
@@ -244,8 +244,8 @@ export const createTicket = async (req: Request, res: Response): Promise<void> =
 
   try {
     // Verify requester exists and is active
-    const requester = await prisma.requesterUser.findFirst({
-      where: { id: requesterId, isActive: true },
+    const requester = await prisma.user.findFirst({
+      where: { id: requesterId, isActive: true, role: "REQUESTER" },
     });
     if (!requester) {
       res.status(400).json({
