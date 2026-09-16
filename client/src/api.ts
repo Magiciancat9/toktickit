@@ -22,19 +22,23 @@ export interface Ticket {
   id: number;
   ticketNumber: string;
   requesterId: number;
+  ownerId?: number | null;
   categoryId: number;
   relatedSystemId: number;
   summary: string;
   description: string;
   requestedPriority: Priority;
+  itPriority?: Priority;
   status: string;
   ticketDate: string;
   createdAt: string;
   updatedAt: string;
   problemResolvedByRequester?: boolean;
   requester?:     { id: number; name: string };
+  owner?:         { id: number; name: string } | null;
   category?:      { id: number; name: string };
   relatedSystem?: { id: number; name: string };
+  attachments?:   AttachmentMeta[];
 }
 
 export interface CreateTicketPayload {
@@ -414,6 +418,169 @@ export async function fetchStaffTickets(params: StaffTicketQueueParams): Promise
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(body?.error?.message ?? `Failed to load tickets: ${response.status}`);
+  }
+  
+  return response.json();
+}
+
+/**
+ * GET /api/staff/tickets/:ticketNumber — Get one ticket with full details for IT Staff
+ * Requires IT_STAFF or ADMINISTRATOR role
+ * Returns ticket with attachments, owner, category, related system, and all details
+ */
+export async function fetchStaffTicketByNumber(ticketNumber: string): Promise<Ticket> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}`, {
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to load ticket: ${response.status}`);
+  }
+  
+  return response.json();
+}
+
+// ── IT Staff Ticket Operations ─────────────────────────────────────────────
+
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/owner — Claim or reassign ticket ownership
+ * Requires IT_STAFF or ADMINISTRATOR role
+ */
+export async function updateTicketOwner(
+  ticketNumber: string,
+  ownerId: number | null
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/owner`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ownerId }),
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to update owner: ${response.status}`);
+  }
+}
+
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/it-priority — Update IT Priority
+ * Requires IT_STAFF or ADMINISTRATOR role
+ */
+export async function updateItPriority(
+  ticketNumber: string,
+  itPriority: Priority
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/it-priority`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itPriority }),
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to update IT priority: ${response.status}`);
+  }
+}
+
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/status — Update ticket status
+ * Requires IT_STAFF or ADMINISTRATOR role
+ * Validates status transitions according to workflow matrix
+ */
+export async function updateTicketStatus(
+  ticketNumber: string,
+  status: string
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to update status: ${response.status}`);
+  }
+}
+
+// ── Internal Notes ─────────────────────────────────────────────────────────
+
+export interface InternalNote {
+  id: number;
+  ticketId: number;
+  authorId: number;
+  authorName: string;
+  authorRole: UserRole;
+  content: string;
+  createdAt: string;
+}
+
+/**
+ * POST /api/staff/tickets/:ticketNumber/notes — Create Internal Note
+ * Requires IT_STAFF or ADMINISTRATOR role
+ */
+export async function createInternalNote(
+  ticketNumber: string,
+  content: string
+): Promise<InternalNote> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to create note: ${response.status}`);
+  }
+  
+  const result = await response.json();
+  return result.data.note;
+}
+
+/**
+ * GET /api/staff/tickets/:ticketNumber/notes — List Internal Notes
+ * Requires IT_STAFF or ADMINISTRATOR role
+ */
+export async function getInternalNotes(ticketNumber: string): Promise<InternalNote[]> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/notes`, {
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to load notes: ${response.status}`);
+  }
+  
+  const result = await response.json();
+  return result.data;
+}
+
+// ── IT Staff Users ─────────────────────────────────────────────────────────
+
+export interface StaffUser {
+  id: number;
+  name: string;
+  role: UserRole;
+}
+
+/**
+ * GET /api/users?role=IT_STAFF — Fetch active IT Staff members for assignment
+ * Note: This endpoint needs to be implemented if not already exists
+ */
+export async function fetchStaffUsers(): Promise<StaffUser[]> {
+  const response = await fetch(`${API_URL}/api/users?role=IT_STAFF`, {
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to load staff users: ${response.status}`);
   }
   
   return response.json();

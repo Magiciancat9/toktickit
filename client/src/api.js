@@ -162,3 +162,202 @@ export async function removeAttachment(attachmentId, removalReason) {
 export function getAttachmentDownloadUrl(attachmentId) {
     return `${API_URL}/api/attachments/${attachmentId}/download`;
 }
+/**
+ * POST /api/tickets/:ticketNumber/comments — Post a Public Comment on owned ticket
+ * Requires valid session cookie.
+ */
+export async function postComment(ticketNumber, content) {
+    const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to post comment: ${response.status}`);
+    }
+    const result = await response.json();
+    return result.data.comment;
+}
+/**
+ * GET /api/tickets/:ticketNumber/comments — List Public Comments on owned ticket
+ * Requires valid session cookie.
+ */
+export async function getComments(ticketNumber) {
+    const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}/comments`, {
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to load comments: ${response.status}`);
+    }
+    const result = await response.json();
+    return result.data;
+}
+// ── Problem Resolved ────────────────────────────────────────────────────────
+/**
+ * PATCH /api/tickets/:ticketNumber/problem-resolved — Requester indicates problem appears resolved
+ * Requires valid session cookie.
+ * This does NOT change the ticket status to RESOLVED.
+ */
+export async function setProblemResolved(ticketNumber, problemResolvedByRequester) {
+    const response = await fetch(`${API_URL}/api/tickets/${ticketNumber}/problem-resolved`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ problemResolvedByRequester }),
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to update ticket: ${response.status}`);
+    }
+}
+/**
+ * GET /api/staff/tickets — IT Staff Ticket Queue
+ * Returns all tickets (not limited to one requester) with search/filter/sort/pagination
+ * Requires valid session cookie and IT_STAFF or ADMINISTRATOR role
+ */
+export async function fetchStaffTickets(params) {
+    const qs = new URLSearchParams();
+    if (params.search)
+        qs.set("search", params.search);
+    if (params.category)
+        qs.set("category", params.category);
+    if (params.reqPriority)
+        qs.set("reqPriority", params.reqPriority);
+    if (params.itPriority)
+        qs.set("itPriority", params.itPriority);
+    if (params.status)
+        qs.set("status", params.status);
+    if (params.assignment)
+        qs.set("assignment", params.assignment);
+    if (params.sort)
+        qs.set("sort", params.sort);
+    if (params.order)
+        qs.set("order", params.order);
+    if (params.page)
+        qs.set("page", String(params.page));
+    if (params.pageSize)
+        qs.set("pageSize", String(params.pageSize));
+    const response = await fetch(`${API_URL}/api/staff/tickets?${qs.toString()}`, {
+        credentials: "include"
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to load tickets: ${response.status}`);
+    }
+    return response.json();
+}
+/**
+ * GET /api/staff/tickets/:ticketNumber — Get one ticket with full details for IT Staff
+ * Requires IT_STAFF or ADMINISTRATOR role
+ * Returns ticket with attachments, owner, category, related system, and all details
+ */
+export async function fetchStaffTicketByNumber(ticketNumber) {
+    const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}`, {
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to load ticket: ${response.status}`);
+    }
+    return response.json();
+}
+// ── IT Staff Ticket Operations ─────────────────────────────────────────────
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/owner — Claim or reassign ticket ownership
+ * Requires IT_STAFF or ADMINISTRATOR role
+ */
+export async function updateTicketOwner(ticketNumber, ownerId) {
+    const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/owner`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerId }),
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to update owner: ${response.status}`);
+    }
+}
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/it-priority — Update IT Priority
+ * Requires IT_STAFF or ADMINISTRATOR role
+ */
+export async function updateItPriority(ticketNumber, itPriority) {
+    const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/it-priority`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itPriority }),
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to update IT priority: ${response.status}`);
+    }
+}
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/status — Update ticket status
+ * Requires IT_STAFF or ADMINISTRATOR role
+ * Validates status transitions according to workflow matrix
+ */
+export async function updateTicketStatus(ticketNumber, status) {
+    const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to update status: ${response.status}`);
+    }
+}
+/**
+ * POST /api/staff/tickets/:ticketNumber/notes — Create Internal Note
+ * Requires IT_STAFF or ADMINISTRATOR role
+ */
+export async function createInternalNote(ticketNumber, content) {
+    const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to create note: ${response.status}`);
+    }
+    const result = await response.json();
+    return result.data.note;
+}
+/**
+ * GET /api/staff/tickets/:ticketNumber/notes — List Internal Notes
+ * Requires IT_STAFF or ADMINISTRATOR role
+ */
+export async function getInternalNotes(ticketNumber) {
+    const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/notes`, {
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to load notes: ${response.status}`);
+    }
+    const result = await response.json();
+    return result.data;
+}
+/**
+ * GET /api/users?role=IT_STAFF — Fetch active IT Staff members for assignment
+ * Note: This endpoint needs to be implemented if not already exists
+ */
+export async function fetchStaffUsers() {
+    const response = await fetch(`${API_URL}/api/users?role=IT_STAFF`, {
+        credentials: "include",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error?.message ?? `Failed to load staff users: ${response.status}`);
+    }
+    return response.json();
+}

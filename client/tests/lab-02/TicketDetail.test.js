@@ -4,7 +4,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TicketDetail } from "../../src/components/TicketDetail.js";
 import * as api from "../../src/api.js";
-import { RequesterProvider, useRequester } from "../../src/context/RequesterContext.js";
+import { useRequester } from "../../src/context/RequesterContext.js";
+import { TestProviders } from "../test-utils.js";
 // ── Constants ─────────────────────────────────────────────────────────────
 const MOCK_REQUESTER = { id: 1, name: "Jennifer Anderson", email: "jennifer@example.com" };
 const ACTIVE_ATTACHMENT = {
@@ -51,7 +52,7 @@ function renderTicketDetail(onBack = vi.fn()) {
             selectRequester(MOCK_REQUESTER);
         return _jsx(TicketDetail, { ticketNumber: "TKT-2026-000001", onBack: onBack });
     }
-    return render(_jsx(RequesterProvider, { children: _jsx(Seeder, {}) }));
+    return render(_jsx(TestProviders, { children: _jsx(Seeder, {}) }));
 }
 // ── Tests ─────────────────────────────────────────────────────────────────
 describe("TicketDetail component", () => {
@@ -163,7 +164,7 @@ describe("TicketDetail component", () => {
         await waitFor(() => {
             expect(screen.queryByTestId("remove-modal")).not.toBeInTheDocument();
         });
-        expect(api.removeAttachment).toHaveBeenCalledWith(ACTIVE_ATTACHMENT.id, MOCK_REQUESTER.id, "Valid removal reason");
+        expect(api.removeAttachment).toHaveBeenCalledWith(ACTIVE_ATTACHMENT.id, "Valid removal reason");
     });
     it("closes the modal without removing when Cancel is clicked", async () => {
         renderTicketDetail();

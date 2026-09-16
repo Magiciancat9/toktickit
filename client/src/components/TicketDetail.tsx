@@ -6,7 +6,7 @@ import {
   getAttachmentDownloadUrl,
   getComments,
   postComment,
-  setProblemResolved,
+  setProblemResolved as apiSetProblemResolved,
   Ticket,
   AttachmentMeta,
   PublicComment,
@@ -262,7 +262,7 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
     setUpdatingResolved(true);
 
     try {
-      await setProblemResolved(ticketNumber, newValue);
+      await apiSetProblemResolved(ticketNumber, newValue);
       setProblemResolved(newValue);
     } catch (err) {
       console.error("Failed to update problem resolved flag:", err);

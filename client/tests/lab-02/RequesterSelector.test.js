@@ -4,10 +4,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RequesterSelector } from "../../src/components/RequesterSelector.js";
 import * as api from "../../src/api.js";
-import { RequesterProvider } from "../../src/context/RequesterContext.js";
-// Helper: wrap the component in RequesterProvider (required by useRequester hook)
+import { TestProviders } from "../test-utils.js";
+// Helper: wrap the component in test providers (required by useRequester hook)
 function renderSelector() {
-    return render(_jsx(RequesterProvider, { children: _jsx(RequesterSelector, {}) }));
+    return render(_jsx(TestProviders, { children: _jsx(RequesterSelector, {}) }));
 }
 const MOCK_REQUESTERS = [
     { id: 1, name: "Jennifer Anderson", email: "jennifer.anderson@example.com" },

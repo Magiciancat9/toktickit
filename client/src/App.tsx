@@ -7,6 +7,7 @@ import { MyTickets } from "./components/MyTickets.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { TicketDetail } from "./components/TicketDetail.js";
 import StaffTicketQueue from "./components/StaffTicketQueue.js";
+import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 
 type Page =
   | { name: "my-tickets" }
@@ -92,9 +93,16 @@ export default function App() {
         />
       ) : /* IT Staff / Admin pages */
       page.name === "staff-queue" && (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") ? (
-        <StaffTicketQueue />
+        <StaffTicketQueue
+          onOpenTicket={(ticketNumber) =>
+            setPage({ name: "staff-ticket-detail", ticketNumber })
+          }
+        />
       ) : page.name === "staff-ticket-detail" && (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") ? (
-        <div>Staff Ticket Detail (To be implemented in future issue)</div>
+        <StaffTicketDetail
+          ticketNumber={page.ticketNumber}
+          onBack={() => setPage({ name: "staff-queue" })}
+        />
       ) : (
         /* Fallback */
         <div style={{ padding: "40px", textAlign: "center" }}>

@@ -7,9 +7,18 @@ import { AppShell } from "./components/AppShell.js";
 import { MyTickets } from "./components/MyTickets.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { TicketDetail } from "./components/TicketDetail.js";
+import StaffTicketQueue from "./components/StaffTicketQueue.js";
+import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 export default function App() {
     const { user, loading } = useAuth();
-    const [page, setPage] = useState({ name: "my-tickets" });
+    // Default page based on role
+    const getDefaultPage = () => {
+        if (user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR") {
+            return { name: "staff-queue" };
+        }
+        return { name: "my-tickets" };
+    };
+    const [page, setPage] = useState(getDefaultPage());
     // Loading state during initial auth check
     if (loading) {
         return (_jsx("div", { style: {
@@ -29,14 +38,22 @@ export default function App() {
         return _jsx(ChangePassword, {});
     }
     // Authenticated and ready → show main app
-    // For Lab 3 authentication issue, we only support Requester role for now
-    // IT Staff and Administrator workflows will be added in subsequent issues
-    return (_jsx(AppShell, { activePage: page.name === "ticket-detail" ? "my-tickets" : page.name, onNavigate: (p) => {
+    return (_jsx(AppShell, { activePage: page.name === "ticket-detail" || page.name === "staff-ticket-detail"
+            ? user.role === "REQUESTER"
+                ? "my-tickets"
+                : "staff-queue"
+            : page.name, onNavigate: (p) => {
             if (p === "my-tickets") {
                 setPage({ name: "my-tickets" });
             }
             else if (p === "create-ticket") {
                 setPage({ name: "create-ticket" });
             }
-        }, children: page.name === "create-ticket" ? (_jsx(CreateTicket, { onCancel: () => setPage({ name: "my-tickets" }) })) : page.name === "ticket-detail" ? (_jsx(TicketDetail, { ticketNumber: page.ticketNumber, onBack: () => setPage({ name: "my-tickets" }) })) : (_jsx(MyTickets, { onCreateTicket: () => setPage({ name: "create-ticket" }), onOpenTicket: (ticketNumber) => setPage({ name: "ticket-detail", ticketNumber }) })) }));
+            else if (p === "staff-queue") {
+                setPage({ name: "staff-queue" });
+            }
+        }, children: page.name === "create-ticket" && user.role === "REQUESTER" ? (_jsx(CreateTicket, { onCancel: () => setPage({ name: "my-tickets" }) })) : page.name === "ticket-detail" && user.role === "REQUESTER" ? (_jsx(TicketDetail, { ticketNumber: page.ticketNumber, onBack: () => setPage({ name: "my-tickets" }) })) : page.name === "my-tickets" && user.role === "REQUESTER" ? (_jsx(MyTickets, { onCreateTicket: () => setPage({ name: "create-ticket" }), onOpenTicket: (ticketNumber) => setPage({ name: "ticket-detail", ticketNumber }) })) : /* IT Staff / Admin pages */
+            page.name === "staff-queue" && (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") ? (_jsx(StaffTicketQueue, { onOpenTicket: (ticketNumber) => setPage({ name: "staff-ticket-detail", ticketNumber }) })) : page.name === "staff-ticket-detail" && (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") ? (_jsx(StaffTicketDetail, { ticketNumber: page.ticketNumber, onBack: () => setPage({ name: "staff-queue" }) })) : (
+            /* Fallback */
+            _jsx("div", { style: { padding: "40px", textAlign: "center" }, children: _jsx("p", { style: { fontSize: "18px", color: "#2C3E37" }, children: "Page not found or access denied." }) })) }));
 }

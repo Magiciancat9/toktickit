@@ -9,8 +9,11 @@ const RequesterContext = createContext(null);
 export function RequesterProvider({ children }) {
     const { user } = useAuth();
     const [currentRequester, setCurrentRequester] = useState(null);
-    // Lab 3: Auto-set authenticated user as current requester
+    const [manuallySet, setManuallySet] = useState(false);
+    // Lab 3: Auto-set authenticated user as current requester (only if not manually set)
     useEffect(() => {
+        if (manuallySet)
+            return; // Don't override manual selection
         if (user && user.role === "REQUESTER") {
             setCurrentRequester({
                 id: user.id,
@@ -21,12 +24,14 @@ export function RequesterProvider({ children }) {
         else if (!user) {
             setCurrentRequester(null);
         }
-    }, [user]);
+    }, [user, manuallySet]);
     function selectRequester(r) {
         setCurrentRequester(r);
+        setManuallySet(true);
     }
     function clearRequester() {
         setCurrentRequester(null);
+        setManuallySet(false);
     }
     return (_jsx(RequesterContext.Provider, { value: { currentRequester, selectRequester, clearRequester }, children: children }));
 }
