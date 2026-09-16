@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { useAuth } from "../context/AuthContext.js";
 
-type Page = "my-tickets" | "create-ticket";
+type Page = "my-tickets" | "create-ticket" | "staff-queue";
 
 interface AppShellProps {
   children: ReactNode;
@@ -96,7 +96,19 @@ export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
                 </li>
               </>
             )}
-            {/* IT Staff and Administrator navigation will be added in future issues */}
+            {(user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR") && (
+              <li className="nav-item">
+                <button
+                  className="nav-link text-white btn p-2 border-0"
+                  style={navLinkStyle("staff-queue")}
+                  onClick={() => onNavigate?.("staff-queue")}
+                  data-testid="nav-ticket-queue"
+                  aria-current={activePage === "staff-queue" ? "page" : undefined}
+                >
+                  Ticket Queue
+                </button>
+              </li>
+            )}
           </ul>
 
           {/* Right — authenticated user display */}
