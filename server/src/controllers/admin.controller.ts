@@ -102,7 +102,7 @@ export async function createUser(req: Request, res: Response) {
     }
     
     // Check for duplicate email
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await getPrisma().user.findUnique({
       where: { email }
     });
     
@@ -203,7 +203,7 @@ export async function updateUser(req: Request, res: Response) {
     
     // Check role change for last admin
     if (role && role !== "ADMINISTRATOR" && currentUser.role === "ADMINISTRATOR" && currentUser.isActive) {
-      const activeAdminsCount = await prisma.user.count({
+      const activeAdminsCount = await getPrisma().user.count({
         where: { role: "ADMINISTRATOR", isActive: true }
       });
       

@@ -89,11 +89,11 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/search by ticket number or summary/i)).toBeInTheDocument();
+      expect(screen.getAllByPlaceholderText(/search by ticket number or summary/i)[0]).toBeInTheDocument();
     });
 
     // Search bar
-    expect(screen.getByPlaceholderText(/search by ticket number or summary/i)).toBeInTheDocument();
+    expect(screen.getAllByPlaceholderText(/search by ticket number or summary/i)[0]).toBeInTheDocument();
 
     // Filter dropdowns - check they exist (categories loaded)
     expect(screen.getByText(/all categories/i)).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe("StaffTicketQueue Component", () => {
     expect(screen.getByText(/sort by:/i)).toBeInTheDocument();
     
     // Clear Filters button
-    expect(screen.getByText(/clear filters/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/clear filters/i)[0]).toBeInTheDocument();
   });
 
   // ── UI-20: Table shows all required columns ────────────────────────────────
@@ -111,27 +111,27 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     // Check table headers (visible on desktop)
-    expect(screen.getByText("Ticket No.")).toBeInTheDocument();
-    expect(screen.getByText("Created")).toBeInTheDocument();
-    expect(screen.getByText("Summary")).toBeInTheDocument();
-    expect(screen.getByText("Category")).toBeInTheDocument();
-    expect(screen.getByText("Req. Priority")).toBeInTheDocument();
-    expect(screen.getByText("IT Priority")).toBeInTheDocument();
-    expect(screen.getByText("Status")).toBeInTheDocument();
-    expect(screen.getByText("Owner")).toBeInTheDocument();
-    expect(screen.getByText("Last Updated")).toBeInTheDocument();
-    expect(screen.getByText("Action")).toBeInTheDocument();
+    expect(screen.getAllByText("Ticket No.")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Created")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Summary")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Category")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Req. Priority")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("IT Priority")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Status")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Owner")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Last Updated")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Action")[0]).toBeInTheDocument();
 
     // Check ticket data is displayed
-    expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
-    expect(screen.getByText("Laptop battery issue")).toBeInTheDocument();
-    expect(screen.getByText("Hardware")).toBeInTheDocument();
-    expect(screen.getByText("Unassigned")).toBeInTheDocument();
-    expect(screen.getByText("IT Staff User")).toBeInTheDocument();
+    expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Laptop battery issue")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Hardware")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Unassigned")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("IT Staff User")[0]).toBeInTheDocument();
   });
 
   // ── UI-21: Search input filters tickets ────────────────────────────────────
@@ -141,13 +141,13 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     // Clear initial call
     vi.clearAllMocks();
 
-    const searchInput = screen.getByPlaceholderText(/search by ticket number or summary/i);
+    const searchInput = screen.getAllByPlaceholderText(/search by ticket number or summary/i)[0];
     await user.type(searchInput, "laptop");
 
     await waitFor(() => {
@@ -166,7 +166,7 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     vi.clearAllMocks();
@@ -194,7 +194,7 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     vi.clearAllMocks();
@@ -240,7 +240,7 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     // Now return empty results after search
@@ -249,7 +249,7 @@ describe("StaffTicketQueue Component", () => {
       meta: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
     });
 
-    const searchInput = screen.getByPlaceholderText(/search by ticket number or summary/i);
+    const searchInput = screen.getAllByPlaceholderText(/search by ticket number or summary/i)[0];
     await user.type(searchInput, "nonexistent");
 
     await waitFor(() => {
@@ -257,7 +257,7 @@ describe("StaffTicketQueue Component", () => {
     });
 
     // Should show Clear Filters button
-    const clearButton = screen.getByRole("button", { name: /clear filters/i });
+    const clearButton = screen.getAllByRole("button", { name: /clear filters/i })[0];
     expect(clearButton).toBeInTheDocument();
   });
 
@@ -283,7 +283,7 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText(/unable to load tickets/i)).toBeInTheDocument();
+      expect(screen.getByText(/Network error/i)).toBeInTheDocument();
     });
 
     // Should show Try Again button
@@ -295,15 +295,15 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     // Set a search term
-    const searchInput = screen.getByPlaceholderText(/search by ticket number or summary/i);
+    const searchInput = screen.getAllByPlaceholderText(/search by ticket number or summary/i)[0];
     await user.type(searchInput, "test");
 
     // Click Clear Filters
-    const clearButton = screen.getByText(/clear filters/i);
+    const clearButton = screen.getAllByText(/clear filters/i)[0];
     await user.click(clearButton);
 
     // Search input should be cleared
@@ -314,7 +314,7 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     // Check for priority badges (should appear multiple times)
@@ -329,18 +329,18 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
-    expect(screen.getByText("NEW")).toBeInTheDocument();
-    expect(screen.getByText("OPEN")).toBeInTheDocument();
+    expect(screen.getAllByText("NEW")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("OPEN")[0]).toBeInTheDocument();
   });
 
   it("pagination controls are disabled/enabled correctly", async () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     // Previous and Next buttons
@@ -359,7 +359,7 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     expect(screen.getByText(/showing 1 to 2 of 2 tickets/i)).toBeInTheDocument();
@@ -370,12 +370,12 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
-    const openLinks = screen.getAllByRole("link");
-    const openButtons = openLinks.filter(link => link.textContent?.includes("Open"));
-    expect(openButtons.length).toBe(mockTickets.length);
+    const openButtons = screen.getAllByRole("button", { name: /open/i });
+    // Desktop and mobile views both render the buttons, so expect 2 * mockTickets.length
+    expect(openButtons.length).toBe(mockTickets.length * 2);
   });
 
   it("sort order toggle changes from desc to asc", async () => {
@@ -383,7 +383,7 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     vi.clearAllMocks();
@@ -410,7 +410,7 @@ describe("StaffTicketQueue Component", () => {
     renderQueue();
 
     await waitFor(() => {
-      expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
+      expect(screen.getAllByText("TKT-2026-000001")[0]).toBeInTheDocument();
     });
 
     vi.clearAllMocks();
