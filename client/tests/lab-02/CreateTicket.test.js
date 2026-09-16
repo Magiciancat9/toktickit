@@ -4,7 +4,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CreateTicket } from "../../src/components/CreateTicket.js";
 import * as api from "../../src/api.js";
-import { RequesterProvider, useRequester } from "../../src/context/RequesterContext.js";
+import { useRequester } from "../../src/context/RequesterContext.js";
+import { TestProviders } from "../test-utils.js";
 // ── Constants ─────────────────────────────────────────────────────────────
 const MOCK_CATEGORIES = [
     { id: 1, name: "Account and Access" },
@@ -45,7 +46,7 @@ function renderWithRequester(onCancel = vi.fn()) {
         }
         return _jsx(CreateTicket, { onCancel: onCancel });
     }
-    return render(_jsx(RequesterProvider, { children: _jsx(Seeder, {}) }));
+    return render(_jsx(TestProviders, { children: _jsx(Seeder, {}) }));
 }
 // ── Tests ─────────────────────────────────────────────────────────────────
 describe("CreateTicket component", () => {
@@ -88,7 +89,7 @@ describe("CreateTicket component", () => {
     it("pre-fills the Requester field as read-only from context", async () => {
         renderWithRequester();
         await waitFor(() => expect(screen.getByTestId("create-ticket-form")).toBeInTheDocument());
-        expect(screen.getByTestId("requester-readonly")).toHaveValue("Jennifer Anderson");
+        await waitFor(() => expect(screen.getByTestId("requester-readonly")).toHaveValue("Jennifer Anderson"));
     });
     // ── Field-level validation errors ─────────────────────────────────────
     it("shows a summary error when summary is empty on submit", async () => {

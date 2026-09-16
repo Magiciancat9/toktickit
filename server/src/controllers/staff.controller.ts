@@ -208,3 +208,587 @@ export const getStaffTicketQueue = async (req: Request, res: Response): Promise<
     });
   }
 };
+
+// ── GET /api/staff/tickets/:ticketNumber ────────────────────────────────────
+
+/**
+ * GET /api/staff/tickets/:ticketNumber
+ * Get one ticket with full details for IT Staff
+ * Returns ticket with attachments, owner, category, related system
+ * Authorization: IT_STAFF or ADMINISTRATOR only
+ */
+export const getStaffTicketByNumber = async (req: Request, res: Response): Promise<void> => {
+  const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
+  const { ticketNumber } = req.params;
+
+  // Authentication required
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
+    });
+    return;
+  }
+
+  // Authorization: only IT Staff and Administrator
+  if (authReq.user.role !== "IT_STAFF" && authReq.user.role !== "ADMINISTRATOR") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not have permission to access this resource" },
+    });
+    return;
+  }
+
+  try {
+    const ticket = await prisma.ticket.findUnique({
+      where: { ticketNumber },
+      include: {
+        requester: { select: { id: true, name: true } },
+        owner: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true } },
+        relatedSystem: { select: { id: true, name: true } },
+        attachments: {
+          select: {
+            id: true,
+            originalName: true,
+            mimeType: true,
+            sizeBytes: true,
+            uploadedAt: true,
+            removedAt: true,
+            removalReason: true,
+          },
+        },
+      },
+    });
+
+    if (!ticket) {
+      res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Resource not found" },
+      });
+      return;
+    }
+
+    res.status(200).json(ticket);
+  } catch (err) {
+    console.error("Failed to fetch ticket:", err);
+    res.status(500).json({
+      error: { code: "SERVER_ERROR", message: "Unable to load ticket" },
+    });
+  }
+};
+
+// ── PATCH /api/staff/tickets/:ticketNumber/owner ────────────────────────────
+
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/owner
+ * Claim or reassign ticket ownership
+ * Request body: { ownerId: number | null }
+ * - ownerId: user ID of IT Staff/Admin to assign (or null to unassign)
+ * Authorization: IT_STAFF or ADMINISTRATOR only
+ */
+export const updateTicketOwner = async (req: Request, res: Response): Promise<void> => {
+  const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
+  const { ticketNumber } = req.params;
+  const { ownerId } = req.body;
+
+  // Authentication required
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
+    });
+    return;
+  }
+
+  // Authorization: only IT Staff and Administrator
+  if (authReq.user.role !== "IT_STAFF" && authReq.user.role !== "ADMINISTRATOR") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not have permission to access this resource" },
+    });
+    return;
+  }
+
+  // Validate ownerId: must be null or a valid IT Staff/Administrator user ID
+  if (ownerId !== null && ownerId !== undefined) {
+    if (typeof ownerId !== "number") {
+      res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "ownerId must be a number or null" },
+      });
+      return;
+    }
+
+    // Check if user exists and is IT Staff or Administrator
+    try {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: ownerId },
+        select: { id: true, name: true, role: true, isActive: true },
+      });
+
+      if (!targetUser || !targetUser.isActive) {
+        res.status(400).json({
+          error: { code: "VALIDATION_ERROR", message: "Invalid ownerId: user does not exist or is inactive" },
+        });
+        return;
+      }
+
+      if (targetUser.role !== "IT_STAFF" && targetUser.role !== "ADMINISTRATOR") {
+        res.status(400).json({
+          error: { code: "VALIDATION_ERROR", message: "ownerId must reference an IT Staff or Administrator user" },
+        });
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to validate ownerId:", err);
+      res.status(500).json({
+        error: { code: "SERVER_ERROR", message: "Unable to update ticket owner" },
+      });
+      return;
+    }
+  }
+
+  // Update ticket owner
+  try {
+    const ticket = await prisma.ticket.update({
+      where: { ticketNumber },
+      data: { ownerId: ownerId ?? null },
+      include: {
+        owner: { select: { id: true, name: true } },
+      },
+    });
+
+    res.status(200).json({
+      data: {
+        ticket: {
+          ticketNumber: ticket.ticketNumber,
+          ownerId: ticket.ownerId,
+          ownerName: ticket.owner?.name ?? null,
+        },
+      },
+    });
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      // Ticket not found
+      res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Resource not found" },
+      });
+    } else {
+      console.error("Failed to update ticket owner:", err);
+      res.status(500).json({
+        error: { code: "SERVER_ERROR", message: "Unable to update ticket owner" },
+      });
+    }
+  }
+};
+
+// ── PATCH /api/staff/tickets/:ticketNumber/it-priority ──────────────────────
+
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/it-priority
+ * Update IT Priority
+ * Request body: { itPriority: "LOW" | "MEDIUM" | "HIGH" }
+ * Authorization: IT_STAFF or ADMINISTRATOR only
+ */
+export const updateItPriority = async (req: Request, res: Response): Promise<void> => {
+  const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
+  const { ticketNumber } = req.params;
+  const { itPriority } = req.body;
+
+  // Authentication required
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
+    });
+    return;
+  }
+
+  // Authorization: only IT Staff and Administrator
+  if (authReq.user.role !== "IT_STAFF" && authReq.user.role !== "ADMINISTRATOR") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not have permission to access this resource" },
+    });
+    return;
+  }
+
+  // Validate itPriority
+  const priorityUpper = typeof itPriority === "string" ? itPriority.toUpperCase() : "";
+  if (!VALID_PRIORITIES.includes(priorityUpper as Priority)) {
+    res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: `Invalid itPriority value. Must be one of: ${VALID_PRIORITIES.join(", ")}` },
+    });
+    return;
+  }
+
+  // Update IT Priority
+  try {
+    const ticket = await prisma.ticket.update({
+      where: { ticketNumber },
+      data: { itPriority: priorityUpper as Priority },
+      select: {
+        ticketNumber: true,
+        itPriority: true,
+      },
+    });
+
+    res.status(200).json({
+      data: {
+        ticket: {
+          ticketNumber: ticket.ticketNumber,
+          itPriority: ticket.itPriority,
+        },
+      },
+    });
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Resource not found" },
+      });
+    } else {
+      console.error("Failed to update IT Priority:", err);
+      res.status(500).json({
+        error: { code: "SERVER_ERROR", message: "Unable to update IT Priority" },
+      });
+    }
+  }
+};
+
+// ── Status Transition Matrix ─────────────────────────────────────────────────
+
+const STATUS_TRANSITIONS: Record<string, string[]> = {
+  NEW: ["OPEN", "CANCELLED"],
+  OPEN: ["IN_PROGRESS", "CANCELLED"],
+  IN_PROGRESS: ["WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  WAITING_FOR_REQUESTER: ["IN_PROGRESS", "RESOLVED", "CANCELLED"],
+  RESOLVED: ["CLOSED", "REOPENED"],
+  CLOSED: ["REOPENED"],
+  REOPENED: ["OPEN", "IN_PROGRESS", "RESOLVED", "CANCELLED"],
+  CANCELLED: [], // Terminal state
+};
+
+// ── PATCH /api/staff/tickets/:ticketNumber/status ───────────────────────────
+
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/status
+ * Update ticket status with transition validation
+ * Request body: { status: string }
+ * Authorization: IT_STAFF or ADMINISTRATOR only
+ */
+export const updateTicketStatus = async (req: Request, res: Response): Promise<void> => {
+  const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
+  const { ticketNumber } = req.params;
+  const { status: newStatus } = req.body;
+
+  // Authentication required
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
+    });
+    return;
+  }
+
+  // Authorization: only IT Staff and Administrator
+  if (authReq.user.role !== "IT_STAFF" && authReq.user.role !== "ADMINISTRATOR") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not have permission to access this resource" },
+    });
+    return;
+  }
+
+  // Validate new status
+  const statusUpper = typeof newStatus === "string" ? newStatus.toUpperCase() : "";
+  if (!VALID_STATUSES.includes(statusUpper as typeof VALID_STATUSES[number])) {
+    res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: `Invalid status value. Must be one of: ${VALID_STATUSES.join(", ")}` },
+    });
+    return;
+  }
+
+  // Get current ticket to check transition validity
+  try {
+    const currentTicket = await prisma.ticket.findUnique({
+      where: { ticketNumber },
+      select: { status: true },
+    });
+
+    if (!currentTicket) {
+      res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Resource not found" },
+      });
+      return;
+    }
+
+    // Validate status transition
+    const currentStatus = currentTicket.status;
+    const allowedTransitions = STATUS_TRANSITIONS[currentStatus] || [];
+
+    if (!allowedTransitions.includes(statusUpper)) {
+      res.status(400).json({
+        error: {
+          code: "INVALID_TRANSITION",
+          message: `Invalid status transition: cannot change from ${currentStatus} to ${statusUpper}`,
+        },
+      });
+      return;
+    }
+
+    // Update status
+    const updatedTicket = await prisma.ticket.update({
+      where: { ticketNumber },
+      data: { status: statusUpper as any },
+      select: {
+        ticketNumber: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
+
+    res.status(200).json({
+      data: {
+        ticket: {
+          ticketNumber: updatedTicket.ticketNumber,
+          status: updatedTicket.status,
+          updatedAt: updatedTicket.updatedAt,
+        },
+      },
+    });
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Resource not found" },
+      });
+    } else {
+      console.error("Failed to update ticket status:", err);
+      res.status(500).json({
+        error: { code: "SERVER_ERROR", message: "Unable to update ticket status" },
+      });
+    }
+  }
+};
+
+// ── POST /api/staff/tickets/:ticketNumber/notes ─────────────────────────────
+
+/**
+ * POST /api/staff/tickets/:ticketNumber/notes
+ * Create an Internal Note (IT Staff/Admin only)
+ * Request body: { content: string }
+ * Authorization: IT_STAFF or ADMINISTRATOR only
+ */
+export const createInternalNote = async (req: Request, res: Response): Promise<void> => {
+  const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
+  const { ticketNumber } = req.params;
+  const { content } = req.body;
+
+  // Authentication required
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
+    });
+    return;
+  }
+
+  // Authorization: only IT Staff and Administrator
+  if (authReq.user.role !== "IT_STAFF" && authReq.user.role !== "ADMINISTRATOR") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not have permission to access this resource" },
+    });
+    return;
+  }
+
+  // Validate content
+  const trimmedContent = typeof content === "string" ? content.trim() : "";
+  if (!trimmedContent) {
+    res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: "Content cannot be empty" },
+    });
+    return;
+  }
+
+  if (trimmedContent.length > 2000) {
+    res.status(400).json({
+      error: { code: "VALIDATION_ERROR", message: "Content must be 2000 characters or fewer" },
+    });
+    return;
+  }
+
+  // Create internal note
+  try {
+    // First, verify ticket exists
+    const ticket = await prisma.ticket.findUnique({
+      where: { ticketNumber },
+      select: { id: true },
+    });
+
+    if (!ticket) {
+      res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Resource not found" },
+      });
+      return;
+    }
+
+    const note = await prisma.internalNote.create({
+      data: {
+        ticketId: ticket.id,
+        authorId: authReq.user.id,
+        content: trimmedContent,
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true },
+        },
+      },
+    });
+
+    res.status(201).json({
+      data: {
+        note: {
+          id: note.id,
+          ticketId: note.ticketId,
+          authorId: note.authorId,
+          authorName: note.author.name,
+          authorRole: note.author.role,
+          content: note.content,
+          createdAt: note.createdAt,
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Failed to create internal note:", err);
+    res.status(500).json({
+      error: { code: "SERVER_ERROR", message: "Unable to create internal note" },
+    });
+  }
+};
+
+// ── GET /api/staff/tickets/:ticketNumber/notes ──────────────────────────────
+
+/**
+ * GET /api/staff/tickets/:ticketNumber/notes
+ * List Internal Notes (IT Staff/Admin only)
+ * Authorization: IT_STAFF or ADMINISTRATOR only
+ */
+export const getInternalNotes = async (req: Request, res: Response): Promise<void> => {
+  const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
+  const { ticketNumber } = req.params;
+
+  // Authentication required
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
+    });
+    return;
+  }
+
+  // Authorization: only IT Staff and Administrator
+  // Requester calling this endpoint gets 403 without exposing note content
+  if (authReq.user.role !== "IT_STAFF" && authReq.user.role !== "ADMINISTRATOR") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not have permission to access this resource" },
+    });
+    return;
+  }
+
+  try {
+    // Verify ticket exists
+    const ticket = await prisma.ticket.findUnique({
+      where: { ticketNumber },
+      select: { id: true },
+    });
+
+    if (!ticket) {
+      res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Resource not found" },
+      });
+      return;
+    }
+
+    // Get internal notes
+    const notes = await prisma.internalNote.findMany({
+      where: { ticketId: ticket.id },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true },
+        },
+      },
+    });
+
+    res.status(200).json({
+      data: notes.map((note) => ({
+        id: note.id,
+        ticketId: note.ticketId,
+        authorId: note.authorId,
+        authorName: note.author.name,
+        authorRole: note.author.role,
+        content: note.content,
+        createdAt: note.createdAt,
+      })),
+    });
+  } catch (err) {
+    console.error("Failed to fetch internal notes:", err);
+    res.status(500).json({
+      error: { code: "SERVER_ERROR", message: "Unable to load internal notes" },
+    });
+  }
+};
+
+// ── GET /api/users ──────────────────────────────────────────────────────────
+
+/**
+ * GET /api/users?role=IT_STAFF
+ * List active IT Staff users for assignment
+ * Authorization: IT_STAFF or ADMINISTRATOR only
+ */
+export const getUsers = async (req: Request, res: Response): Promise<void> => {
+  const prisma = getPrisma();
+  const authReq = req as AuthenticatedRequest;
+  const { role } = req.query;
+
+  // Authentication required
+  if (!authReq.user) {
+    res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Authentication required" },
+    });
+    return;
+  }
+
+  // Authorization: only IT Staff and Administrator
+  if (authReq.user.role !== "IT_STAFF" && authReq.user.role !== "ADMINISTRATOR") {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not have permission to access this resource" },
+    });
+    return;
+  }
+
+  try {
+    const where: any = { isActive: true };
+    
+    if (role) {
+      const roleUpper = String(role).toUpperCase();
+      if (roleUpper === "IT_STAFF" || roleUpper === "ADMINISTRATOR") {
+        where.OR = [
+          { role: "IT_STAFF" },
+          { role: "ADMINISTRATOR" },
+        ];
+      }
+    }
+
+    const users = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        role: true,
+      },
+      orderBy: { name: "asc" },
+    });
+
+    res.status(200).json(users);
+  } catch (err) {
+    console.error("Failed to fetch users:", err);
+    res.status(500).json({
+      error: { code: "SERVER_ERROR", message: "Unable to load users" },
+    });
+  }
+};

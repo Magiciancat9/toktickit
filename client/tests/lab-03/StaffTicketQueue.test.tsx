@@ -69,8 +69,8 @@ const mockMeta = {
   totalPages: 1,
 };
 
-function renderQueue() {
-  return render(<StaffTicketQueue />);
+function renderQueue(onOpenTicket = vi.fn()) {
+  return render(<StaffTicketQueue onOpenTicket={onOpenTicket} />);
 }
 
 describe("StaffTicketQueue Component", () => {

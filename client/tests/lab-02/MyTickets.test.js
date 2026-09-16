@@ -4,7 +4,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MyTickets } from "../../src/components/MyTickets.js";
 import * as api from "../../src/api.js";
-import { RequesterProvider, useRequester } from "../../src/context/RequesterContext.js";
+import { useRequester } from "../../src/context/RequesterContext.js";
+import { TestProviders } from "../test-utils.js";
 // ── Constants ─────────────────────────────────────────────────────────────
 const MOCK_REQUESTER_A = { id: 1, name: "Jennifer Anderson", email: "jennifer@example.com" };
 const MOCK_REQUESTER_B = { id: 2, name: "Michael Brown", email: "michael@example.com" };
@@ -37,7 +38,7 @@ function renderMyTickets(requesterId = MOCK_REQUESTER_A, onCreateTicket = vi.fn(
             selectRequester(requesterId);
         return _jsx(MyTickets, { onCreateTicket: onCreateTicket, onOpenTicket: onOpenTicket });
     }
-    return render(_jsx(RequesterProvider, { children: _jsx(Seeder, {}) }));
+    return render(_jsx(TestProviders, { children: _jsx(Seeder, {}) }));
 }
 // ── Tests ─────────────────────────────────────────────────────────────────
 describe("MyTickets component", () => {

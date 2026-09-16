@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { fetchCategories, fetchStaffTickets, StaffTicket } from "../api";
 
 // Zen Green Design System Colors
@@ -45,7 +44,11 @@ interface StaffTicketQueueMeta {
   totalPages: number;
 }
 
-const StaffTicketQueue: React.FC = () => {
+interface StaffTicketQueueProps {
+  onOpenTicket: (ticketNumber: string) => void;
+}
+
+const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onOpenTicket }) => {
   // State for filters
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -612,17 +615,21 @@ const StaffTicketQueue: React.FC = () => {
                       }}
                     >
                       <td style={{ padding: "12px" }}>
-                        <Link
-                          to={`/staff/tickets/${ticket.ticketNumber}`}
+                        <button
+                          onClick={() => onOpenTicket(ticket.ticketNumber)}
                           style={{
+                            background: "none",
+                            border: "none",
                             color: COLORS.primaryGreen,
                             textDecoration: "none",
                             fontWeight: 600,
                             fontSize: "14px",
+                            cursor: "pointer",
+                            padding: 0,
                           }}
                         >
                           {ticket.ticketNumber}
-                        </Link>
+                        </button>
                       </td>
                       <td style={{ padding: "12px", fontSize: "14px", color: COLORS.darkCharcoal }}>
                         {formatDate(ticket.createdAt)}
@@ -658,8 +665,8 @@ const StaffTicketQueue: React.FC = () => {
                         {formatDate(ticket.updatedAt)}
                       </td>
                       <td style={{ padding: "12px", textAlign: "center" }}>
-                        <Link
-                          to={`/staff/tickets/${ticket.ticketNumber}`}
+                        <button
+                          onClick={() => onOpenTicket(ticket.ticketNumber)}
                           style={{
                             padding: "6px 16px",
                             fontSize: "14px",
@@ -668,12 +675,11 @@ const StaffTicketQueue: React.FC = () => {
                             backgroundColor: COLORS.white,
                             border: `2px solid ${COLORS.secondaryGreen}`,
                             borderRadius: "4px",
-                            textDecoration: "none",
-                            display: "inline-block",
+                            cursor: "pointer",
                           }}
                         >
                           Open
-                        </Link>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -696,17 +702,21 @@ const StaffTicketQueue: React.FC = () => {
                 >
                   {/* Top row: Ticket Number and Status */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                    <Link
-                      to={`/staff/tickets/${ticket.ticketNumber}`}
+                    <button
+                      onClick={() => onOpenTicket(ticket.ticketNumber)}
                       style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
                         color: COLORS.primaryGreen,
                         textDecoration: "none",
                         fontWeight: 600,
                         fontSize: "16px",
+                        cursor: "pointer",
                       }}
                     >
                       {ticket.ticketNumber}
-                    </Link>
+                    </button>
                     <StatusBadge status={ticket.status} />
                   </div>
 
@@ -757,10 +767,11 @@ const StaffTicketQueue: React.FC = () => {
                   </div>
 
                   {/* Open Button */}
-                  <Link
-                    to={`/staff/tickets/${ticket.ticketNumber}`}
+                  <button
+                    onClick={() => onOpenTicket(ticket.ticketNumber)}
                     style={{
                       display: "block",
+                      width: "100%",
                       padding: "10px",
                       fontSize: "14px",
                       fontWeight: 600,
@@ -768,12 +779,12 @@ const StaffTicketQueue: React.FC = () => {
                       backgroundColor: COLORS.white,
                       border: `2px solid ${COLORS.secondaryGreen}`,
                       borderRadius: "4px",
-                      textDecoration: "none",
                       textAlign: "center",
+                      cursor: "pointer",
                     }}
                   >
                     Open
-                  </Link>
+                  </button>
                 </div>
               ))}
             </div>
