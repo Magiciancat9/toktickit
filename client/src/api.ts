@@ -353,3 +353,68 @@ export async function setProblemResolved(
     throw new Error(body?.error?.message ?? `Failed to update ticket: ${response.status}`);
   }
 }
+
+// ── IT Staff Ticket Queue ──────────────────────────────────────────────────
+
+export interface StaffTicketQueueParams {
+  search?:      string;
+  category?:    string;
+  reqPriority?: Priority;
+  itPriority?:  Priority;
+  status?:      string;
+  assignment?:  "all" | "unassigned" | "assigned-to-me" | "assigned-to-others";
+  sort?:        "createdAt" | "updatedAt" | "itPriority";
+  order?:       "asc" | "desc";
+  page?:        number;
+  pageSize?:    10 | 25 | 50;
+}
+
+export interface StaffTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  requestedPriority: Priority;
+  itPriority: Priority;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  requester?: { id: number; name: string };
+  owner?: { id: number; name: string } | null;
+  category?: { id: number; name: string };
+  relatedSystem?: { id: number; name: string };
+}
+
+export interface StaffTicketQueueResponse {
+  data: StaffTicket[];
+  meta: TicketListMeta;
+}
+
+/**
+ * GET /api/staff/tickets — IT Staff Ticket Queue
+ * Returns all tickets (not limited to one requester) with search/filter/sort/pagination
+ * Requires valid session cookie and IT_STAFF or ADMINISTRATOR role
+ */
+export async function fetchStaffTickets(params: StaffTicketQueueParams): Promise<StaffTicketQueueResponse> {
+  const qs = new URLSearchParams();
+  if (params.search)      qs.set("search",      params.search);
+  if (params.category)    qs.set("category",    params.category);
+  if (params.reqPriority) qs.set("reqPriority", params.reqPriority);
+  if (params.itPriority)  qs.set("itPriority",  params.itPriority);
+  if (params.status)      qs.set("status",      params.status);
+  if (params.assignment)  qs.set("assignment",  params.assignment);
+  if (params.sort)        qs.set("sort",        params.sort);
+  if (params.order)       qs.set("order",       params.order);
+  if (params.page)        qs.set("page",        String(params.page));
+  if (params.pageSize)    qs.set("pageSize",    String(params.pageSize));
+
+  const response = await fetch(`${API_URL}/api/staff/tickets?${qs.toString()}`, {
+    credentials: "include"
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to load tickets: ${response.status}`);
+  }
+  
+  return response.json();
+}
