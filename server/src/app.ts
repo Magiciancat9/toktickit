@@ -15,6 +15,7 @@ import attachmentsRouter from "./routes/attachments.router.js";
 import authRouter from "./routes/auth.router.js";
 import staffRouter from "./routes/staff.router.js";
 import usersRouter from "./routes/users.router.js";
+import adminRouter from "./routes/admin.router.js";
 
 export const app = express();
 
@@ -66,5 +67,6 @@ app.use("/api/tickets", ticketsRouter);
 app.use("/api/attachments", attachmentsRouter);
 app.use("/api/staff", staffRouter); // Lab 3: IT Staff routes
 app.use("/api/users", usersRouter); // Lab 3: Users list for assignment
+app.use("/api/admin", adminRouter); // Lab 3: Admin routes
 
 export default app;
