@@ -8,20 +8,25 @@ import { CreateTicket } from "./components/CreateTicket.js";
 import { TicketDetail } from "./components/TicketDetail.js";
 import StaffTicketQueue from "./components/StaffTicketQueue.js";
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
+import { UserManagement } from "./components/UserManagement.js";
 
 type Page =
   | { name: "my-tickets" }
   | { name: "create-ticket" }
   | { name: "ticket-detail"; ticketNumber: string }
   | { name: "staff-queue" }
-  | { name: "staff-ticket-detail"; ticketNumber: string };
+  | { name: "staff-ticket-detail"; ticketNumber: string }
+  | { name: "user-management" };
 
 export default function App() {
   const { user, loading } = useAuth();
   
   // Default page based on role
   const getDefaultPage = (): Page => {
-    if (user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR") {
+    if (user?.role === "ADMINISTRATOR") {
+      return { name: "user-management" };
+    }
+    if (user?.role === "IT_STAFF") {
       return { name: "staff-queue" };
     }
     return { name: "my-tickets" };
@@ -73,6 +78,8 @@ export default function App() {
           setPage({ name: "create-ticket" });
         } else if (p === "staff-queue") {
           setPage({ name: "staff-queue" });
+        } else if (p === "user-management") {
+          setPage({ name: "user-management" });
         }
       }}
     >
@@ -103,6 +110,8 @@ export default function App() {
           ticketNumber={page.ticketNumber}
           onBack={() => setPage({ name: "staff-queue" })}
         />
+      ) : page.name === "user-management" && user.role === "ADMINISTRATOR" ? (
+        <UserManagement />
       ) : (
         /* Fallback */
         <div style={{ padding: "40px", textAlign: "center" }}>

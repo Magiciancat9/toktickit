@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { useAuth } from "../context/AuthContext.js";
 
-type Page = "my-tickets" | "create-ticket" | "staff-queue";
+type Page = "my-tickets" | "create-ticket" | "staff-queue" | "user-management";
 
 interface AppShellProps {
   children: ReactNode;
@@ -106,6 +106,19 @@ export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
                   aria-current={activePage === "staff-queue" ? "page" : undefined}
                 >
                   Ticket Queue
+                </button>
+              </li>
+            )}
+            {user?.role === "ADMINISTRATOR" && (
+              <li className="nav-item">
+                <button
+                  className="nav-link text-white btn p-2 border-0"
+                  style={navLinkStyle("user-management")}
+                  onClick={() => onNavigate?.("user-management")}
+                  data-testid="nav-user-management"
+                  aria-current={activePage === "user-management" ? "page" : undefined}
+                >
+                  User Management
                 </button>
               </li>
             )}
