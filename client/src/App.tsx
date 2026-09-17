@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "./context/AuthContext.js";
 import { Login } from "./components/Login.js";
 import { ChangePassword } from "./components/ChangePassword.js";
-import { AppShell } from "./components/AppShell.js";
+import { AppShell } from "./components/AppShell";
 import { MyTickets } from "./components/MyTickets.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { TicketDetail } from "./components/TicketDetail.js";
@@ -33,6 +33,12 @@ export default function App() {
   };
   
   const [page, setPage] = useState<Page>(getDefaultPage());
+
+  useEffect(() => {
+    if (user) {
+      setPage(getDefaultPage());
+    }
+  }, [user?.id, user?.role]);
 
   // Loading state during initial auth check
   if (loading) {
