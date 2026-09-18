@@ -14,7 +14,8 @@ server/prisma/*.db
 .DS_Store
 
 # Playwright
-artifacts/lab-02/playwright-report/
-artifacts/lab-02/test-attachment.png
+artifacts/*/playwright-report/
+artifacts/*/test-attachment.png
 test-results/
+
 
