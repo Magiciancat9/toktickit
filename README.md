@@ -155,3 +155,78 @@ npx playwright show-report artifacts/lab-02/playwright-report
 | API Tests | `server/tests/lab-02/` | Backend endpoint integration tests |
 | Component Tests | `client/tests/lab-02/` | React component unit tests |
 | E2E Tests | `e2e/lab-02/` | Full user workflow and responsive screenshot tests |
+
+---
+
+## Lab 3 - Authentication, Authorization, and Operations
+
+Lab 3 replaces the temporary Requester selector with session-based authentication and role-based workflows for Requesters, IT Staff, and Administrators.
+
+### Lab 3 Features
+
+- Session-based login, logout, current-user lookup, and mandatory first-login password change
+- Role-based navigation and server-side authorization for `REQUESTER`, `IT_STAFF`, and `ADMINISTRATOR`
+- Requester ticket regression using the authenticated user's identity
+- IT Staff Ticket Queue with search, filters, sorting, pagination, assignment, and status workflow
+- IT Staff Ticket Detail with ownership, IT Priority, status, Public Comments, Internal Notes, and attachments
+- Administrator User Management with search, single-role creation, editing, activation, password reset, and safety protections
+- PostgreSQL session storage and bcrypt password hashing
+
+### Lab 3 Seed Accounts
+
+All seeded accounts initially use `TempPass123!` and must change their password at first login.
+
+| Role | Email |
+| --- | --- |
+| Administrator | `admin@example.com` |
+| IT Staff | `emma.rodriguez@example.com` |
+| IT Staff | `james.chen@example.com` |
+| IT Staff | `sofia.martinez@example.com` |
+| Requester | `jennifer.anderson@example.com` |
+| Requester | `michael.brown@example.com` |
+
+### Running Lab 3 Locally
+
+Start PostgreSQL if necessary, then apply the migration and seed data:
+
+```bash
+docker start toktickit-db
+npm --prefix server run prisma:migrate
+npm --prefix server run prisma:seed
+```
+
+Start the backend and frontend in separate terminals:
+
+```bash
+# Terminal 1 - Backend API
+npm --prefix server run dev
+
+# Terminal 2 - Frontend
+npm --prefix client run dev
+```
+
+Open the web application at `http://localhost:5173`. The backend API is available at `http://localhost:3000/api`.
+
+If port `3000` or `5173` is already in use, the corresponding service is already running. Do not start a second copy.
+
+### Lab 3 Tests
+
+```bash
+# Backend API and unit tests
+npm --prefix server run test
+
+# Frontend component tests
+npm --prefix client run test
+
+# Playwright E2E tests
+npx playwright test
+
+# Lab 3 E2E tests only
+npx playwright test e2e/lab-03/
+
+# Run one viewport project
+npx playwright test e2e/lab-03/ --project=desktop
+npx playwright test e2e/lab-03/ --project=tablet
+npx playwright test e2e/lab-03/ --project=mobile
+```
+
