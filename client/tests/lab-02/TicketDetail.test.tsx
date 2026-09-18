@@ -3,7 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TicketDetail } from "../../src/components/TicketDetail.js";
 import * as api from "../../src/api.js";
-import { RequesterProvider, useRequester } from "../../src/context/RequesterContext.js";
+import { useRequester } from "../../src/context/RequesterContext.js";
+import { TestProviders } from "../test-utils.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -57,9 +58,9 @@ function renderTicketDetail(onBack = vi.fn()) {
     return <TicketDetail ticketNumber="TKT-2026-000001" onBack={onBack} />;
   }
   return render(
-    <RequesterProvider>
+    <TestProviders>
       <Seeder />
-    </RequesterProvider>
+    </TestProviders>
   );
 }
 
@@ -206,7 +207,6 @@ describe("TicketDetail component", () => {
     });
     expect(api.removeAttachment).toHaveBeenCalledWith(
       ACTIVE_ATTACHMENT.id,
-      MOCK_REQUESTER.id,
       "Valid removal reason"
     );
   });

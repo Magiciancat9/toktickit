@@ -33,28 +33,49 @@ enum Priority {
   HIGH
 }
 
-// Enum for Current Status (only NEW in Lab 2; extended in later labs)
+// Enum for Current Status (NEW in Lab 2; extended in Lab 3)
 enum TicketStatus {
   NEW
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_REQUESTER
+  RESOLVED
+  CLOSED
+  REOPENED
+  CANCELLED
 }
 
-// Development Requester — temporary testing identity used instead of real auth in Lab 2.
-// isActive controls visibility in the selector (inactive Requesters are hidden).
-// Decision: isActive is a boolean rather than a soft-removal timestamp because
-// Requesters are not deleted — they are simply toggled off. This is simpler and
-// matches the selector requirement without introducing confusion with Attachment
-// soft-removal (which uses a nullable DateTime for auditability).
-model RequesterUser {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Enum for User Role (Lab 3)
+enum UserRole {
+  REQUESTER
+  IT_STAFF
+  ADMINISTRATOR
+}
 
-  tickets Ticket[]
+// Lab 3: Real User model with authentication and roles.
+// Migrated from Lab 2's RequesterUser — existing data preserved.
+// passwordHash stores bcrypt hash (never plaintext).
+// requiresPasswordChange forces password change on first login or after admin reset.
+model User {
+  id                    Int      @id @default(autoincrement())
+  name                  String
+  email                 String   @unique
+  passwordHash          String                    // bcrypt hash, never returned to client
+  role                  UserRole                  // exactly one role per user
+  isActive              Boolean  @default(true)   // inactive users cannot login
+  requiresPasswordChange Boolean @default(true)   // true = must change password before normal app access
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  @@index([isActive]) // filtered in every selector query
+  // Relations
+  ticketsCreated        Ticket[]        @relation("TicketRequester")
+  ticketsOwned          Ticket[]        @relation("TicketOwner")
+  publicComments        PublicComment[]
+  internalNotes         InternalNote[]
+
+  @@index([email])
+  @@index([isActive])
+  @@index([role])
 }
 
 // Related System — the service, device, or application affected by the ticket.
@@ -70,36 +91,74 @@ model RelatedSystem {
   @@index([isActive])
 }
 
-// Ticket — core entity created by a Requester.
+// Ticket — core entity created by a Requester (Lab 2), extended in Lab 3.
 // ticketNumber is unique, backend-generated in format TKT-YYYY-NNNNNN.
-// ticketDate is set by the backend at creation; the frontend never supplies it.
-// IT Priority is intentionally absent — it is an IT Staff field added in a later lab.
+// Lab 3 adds: ownerId (IT Staff/Admin owner), itPriority, problemResolvedByRequester.
 model Ticket {
-  id                Int          @id @default(autoincrement())
-  ticketNumber      String       @unique
-  requesterId       Int
-  categoryId        Int
-  relatedSystemId   Int
-  summary           String       @db.VarChar(150)
-  description       String       @db.Text
-  requestedPriority Priority
-  status            TicketStatus @default(NEW)
-  ticketDate        DateTime     @default(now())
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  id                         Int          @id @default(autoincrement())
+  ticketNumber               String       @unique
+  requesterId                Int          // User who created the ticket (Requester)
+  ownerId                    Int?         // IT Staff or Administrator who owns this ticket (nullable = unassigned)
+  categoryId                 Int
+  relatedSystemId            Int
+  summary                    String       @db.VarChar(150)
+  description                String       @db.Text
+  requestedPriority          Priority     // Set by Requester, never changes
+  itPriority                 Priority     @default(MEDIUM) // Initially copies requestedPriority, editable by IT Staff
+  status                     TicketStatus @default(NEW)
+  problemResolvedByRequester Boolean      @default(false) // Requester indicator; does NOT change status
+  ticketDate                 DateTime     @default(now())
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
 
-  requester     RequesterUser @relation(fields: [requesterId], references: [id])
-  category      Category      @relation(fields: [categoryId], references: [id])
-  relatedSystem RelatedSystem @relation(fields: [relatedSystemId], references: [id])
-  attachments   Attachment[]
+  // Relations
+  requester        User            @relation("TicketRequester", fields: [requesterId], references: [id])
+  owner            User?           @relation("TicketOwner", fields: [ownerId], references: [id])
+  category         Category        @relation(fields: [categoryId], references: [id])
+  relatedSystem    RelatedSystem   @relation(fields: [relatedSystemId], references: [id])
+  attachments      Attachment[]
+  publicComments   PublicComment[]
+  internalNotes    InternalNote[]
 
   // Indexes on fields used for filtering, sorting, and ownership queries
-  @@index([requesterId])           // ownership — every list query filters by this
+  @@index([requesterId])           // requester ownership
+  @@index([ownerId])               // IT Staff ownership
   @@index([categoryId])            // category filter
-  @@index([requestedPriority])     // priority filter
+  @@index([requestedPriority])     // requested priority filter
+  @@index([itPriority])            // IT priority filter and sort
   @@index([status])                // status filter
   @@index([createdAt])             // default sort field
   @@index([updatedAt])             // secondary sort field
+}
+
+// Lab 3: Public Comment — visible to Requester, IT Staff, and Administrator.
+model PublicComment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+// Lab 3: Internal Note — visible only to IT Staff and Administrator.
+model InternalNote {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId])
+  @@index([createdAt])
 }
 
 // Attachment — file metadata stored per Ticket.

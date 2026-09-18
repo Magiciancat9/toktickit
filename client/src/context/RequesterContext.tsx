@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useAuth } from "./AuthContext.js";
 
 export interface Requester {
   id: number;
@@ -19,18 +20,36 @@ const RequesterContext = createContext<RequesterContextValue | null>(null);
 
 /**
  * Provides the selected Development Requester testing context to the whole app.
- * This is NOT authentication — it is a Lab 2 testing mechanism only.
- * No passwords, sessions, or tokens are involved.
+ * Lab 3: Automatically sets the authenticated user as the current requester.
  */
 export function RequesterProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [currentRequester, setCurrentRequester] = useState<Requester | null>(null);
+  const [manuallySet, setManuallySet] = useState(false);
+
+  // Lab 3: Auto-set authenticated user as current requester (only if not manually set)
+  useEffect(() => {
+    if (manuallySet) return; // Don't override manual selection
+    
+    if (user && user.role === "REQUESTER") {
+      setCurrentRequester({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      });
+    } else if (!user) {
+      setCurrentRequester(null);
+    }
+  }, [user, manuallySet]);
 
   function selectRequester(r: Requester) {
     setCurrentRequester(r);
+    setManuallySet(true);
   }
 
   function clearRequester() {
     setCurrentRequester(null);
+    setManuallySet(false);
   }
 
   return (

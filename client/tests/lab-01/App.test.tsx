@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../../src/App.js";
 import * as api from "../../src/api.js";
-import { RequesterProvider } from "../../src/context/RequesterContext.js";
+import { TestProviders } from "../test-utils.js";
 
 // App now shows MyTickets as the default home page (Lab 2 Issue 5).
 // Tests drive past the RequesterSelector first, then verify App behaviour.
@@ -12,9 +12,9 @@ const MOCK_REQUESTER = { id: 1, name: "Jennifer Anderson", email: "jennifer@exam
 
 function renderApp() {
   return render(
-    <RequesterProvider>
+    <TestProviders>
       <App />
-    </RequesterProvider>
+    </TestProviders>
   );
 }
 

@@ -4,8 +4,12 @@ import {
   uploadAttachment,
   removeAttachment,
   getAttachmentDownloadUrl,
+  getComments,
+  postComment,
+  setProblemResolved as apiSetProblemResolved,
   Ticket,
   AttachmentMeta,
+  PublicComment,
 } from "../api.js";
 import { useRequester } from "../context/RequesterContext.js";
 
@@ -36,6 +40,12 @@ const PRIORITY_BADGE: Record<string, string> = {
 };
 const STATUS_BADGE: Record<string, string> = {
   NEW: "bg-success",
+};
+
+const ROLE_BADGE: Record<string, string> = {
+  REQUESTER: "bg-primary",
+  IT_STAFF: "bg-success",
+  ADMINISTRATOR: "bg-secondary",
 };
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -103,28 +113,50 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
   // Remove modal state
   const [removeModal, setRemoveModal] = useState<RemoveModalState | null>(null);
 
+  // Comments state
+  const [comments, setComments] = useState<PublicComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [postingComment, setPostingComment] = useState(false);
+
+  // Problem resolved state
+  const [problemResolved, setProblemResolved] = useState(false);
+  const [updatingResolved, setUpdatingResolved] = useState(false);
+
   // ── Load ticket ────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!currentRequester) return;
     setDetailState("loading");
-    fetchTicketByNumber(ticketNumber, currentRequester.id)
+    fetchTicketByNumber(ticketNumber)
       .then((t) => {
         setTicket(t);
         setAttachments((t as Ticket & { attachments?: AttachmentMeta[] }).attachments ?? []);
+        setProblemResolved(t.problemResolvedByRequester ?? false);
         setDetailState("loaded");
       })
       .catch((err: Error) => {
         setErrorMsg(err.message);
         setDetailState("error");
       });
-  }, [ticketNumber, currentRequester]);
+  }, [ticketNumber]);
+
+  // ── Load comments ──────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (detailState === "loaded") {
+      getComments(ticketNumber)
+        .then(setComments)
+        .catch((err) => {
+          console.error("Failed to load comments:", err);
+        });
+    }
+  }, [ticketNumber, detailState]);
 
   // ── Upload ─────────────────────────────────────────────────────────────
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !ticket || !currentRequester) return;
+    if (!file || !ticket) return;
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     setUploadError(null);
@@ -140,7 +172,7 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
 
     setUploadingFile(file.name);
     try {
-      const meta = await uploadAttachment(ticketNumber, currentRequester.id, file);
+      const meta = await uploadAttachment(ticketNumber, file);
       setAttachments((prev) => [...prev, meta]);
     } catch (err) {
       setUploadError(
@@ -168,7 +200,7 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
   }
 
   async function confirmRemove() {
-    if (!removeModal || !currentRequester) return;
+    if (!removeModal) return;
     if (removeModal.reason.trim().length < 5) {
       setRemoveModal((m) => m ? { ...m, error: "Reason must be at least 5 characters." } : m);
       return;
@@ -177,7 +209,6 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
     try {
       const updated = await removeAttachment(
         removeModal.attachmentId,
-        currentRequester.id,
         removeModal.reason.trim()
       );
       setAttachments((prev) =>
@@ -192,6 +223,52 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
           error: err instanceof Error ? err.message : "Remove failed.",
         } : m
       );
+    }
+  }
+
+  // ── Post comment ───────────────────────────────────────────────────────
+
+  async function handlePostComment() {
+    const content = newComment.trim();
+    
+    if (!content) {
+      setCommentError("Comment cannot be empty.");
+      return;
+    }
+    
+    if (content.length > 2000) {
+      setCommentError("Comment must be 2000 characters or fewer.");
+      return;
+    }
+
+    setPostingComment(true);
+    setCommentError(null);
+
+    try {
+      const comment = await postComment(ticketNumber, content);
+      setComments((prev) => [...prev, comment]);
+      setNewComment("");
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "Failed to post comment.");
+    } finally {
+      setPostingComment(false);
+    }
+  }
+
+  // ── Toggle problem resolved ────────────────────────────────────────────
+
+  async function handleToggleProblemResolved() {
+    const newValue = !problemResolved;
+    setUpdatingResolved(true);
+
+    try {
+      await apiSetProblemResolved(ticketNumber, newValue);
+      setProblemResolved(newValue);
+    } catch (err) {
+      console.error("Failed to update problem resolved flag:", err);
+      alert(err instanceof Error ? err.message : "Failed to update.");
+    } finally {
+      setUpdatingResolved(false);
     }
   }
 
@@ -330,6 +407,37 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
             {t.description}
           </div>
         </div>
+
+        {/* ── Problem Resolved Indicator ── */}
+        <div className="mt-3 pt-3 border-top">
+          <div className="form-check">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="problem-resolved-checkbox"
+              checked={problemResolved}
+              onChange={handleToggleProblemResolved}
+              disabled={updatingResolved}
+              data-testid="problem-resolved-checkbox"
+              style={{ cursor: updatingResolved ? "not-allowed" : "pointer" }}
+            />
+            <label
+              className="form-check-label"
+              htmlFor="problem-resolved-checkbox"
+              style={{ cursor: updatingResolved ? "not-allowed" : "pointer" }}
+            >
+              <span style={{ fontSize: "0.875rem", color: "#1A2E22" }}>
+                Problem appears resolved
+              </span>
+              {updatingResolved && (
+                <span className="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" />
+              )}
+            </label>
+          </div>
+          <small className="text-muted d-block mt-1" style={{ fontSize: "0.75rem", marginLeft: "1.5rem" }}>
+            Check this if your problem has been resolved. IT Staff will formally close the ticket.
+          </small>
+        </div>
       </div>
 
       {/* ── Attachments section ── */}
@@ -404,7 +512,7 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
                 </div>
                 <div className="d-flex gap-2">
                   <a
-                    href={getAttachmentDownloadUrl(att.id, currentRequester!.id)}
+                    href={getAttachmentDownloadUrl(att.id)}
                     className="btn btn-sm btn-outline-secondary"
                     target="_blank"
                     rel="noreferrer"
@@ -468,6 +576,104 @@ export function TicketDetail({ ticketNumber, onBack }: TicketDetailProps) {
             </ul>
           </div>
         )}
+      </div>
+
+      {/* ── Public Comments section ── */}
+      <div className="card shadow-sm border-0 p-4 mt-3" data-testid="comments-section">
+        <h2 className="h6 fw-bold mb-3" style={{ color: "#1A2E22" }}>
+          Public Comments
+          {comments.length > 0 && (
+            <span className="badge bg-secondary ms-2">{comments.length}</span>
+          )}
+        </h2>
+
+        {/* Comments list */}
+        {comments.length === 0 ? (
+          <p className="text-muted mb-3" style={{ fontSize: "0.875rem" }}>
+            No comments yet. Be the first to comment!
+          </p>
+        ) : (
+          <div className="mb-3" data-testid="comments-list">
+            {comments.map((comment) => (
+              <div
+                key={comment.id}
+                className="card mb-2"
+                style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}
+                data-testid={`comment-${comment.id}`}
+              >
+                <div className="card-body py-2 px-3">
+                  <div className="d-flex justify-content-between align-items-start mb-1">
+                    <div>
+                      <strong style={{ fontSize: "0.875rem", color: "#1A2E22" }}>
+                        {comment.authorName}
+                      </strong>
+                      <span
+                        className={`badge ms-2 ${ROLE_BADGE[comment.authorRole] ?? "bg-secondary"}`}
+                        style={{ fontSize: "0.7rem" }}
+                      >
+                        {comment.authorRole.replace("_", " ")}
+                      </span>
+                    </div>
+                    <small className="text-muted" style={{ fontSize: "0.75rem" }}>
+                      {formatDate(comment.createdAt)}
+                    </small>
+                  </div>
+                  <p className="mb-0" style={{ fontSize: "0.875rem", whiteSpace: "pre-wrap" }}>
+                    {comment.content}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add comment form */}
+        <div>
+          <label
+            htmlFor="new-comment"
+            className="form-label fw-semibold"
+            style={{ fontSize: "0.875rem", color: "#1A2E22" }}
+          >
+            Add a comment
+          </label>
+          <textarea
+            id="new-comment"
+            className="form-control mb-2"
+            rows={3}
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            disabled={postingComment}
+            placeholder="Share an update or ask a question..."
+            data-testid="comment-input"
+            style={{ resize: "vertical" }}
+          />
+          {commentError && (
+            <div
+              className="text-danger mb-2"
+              style={{ fontSize: "0.82rem" }}
+              data-testid="comment-error"
+            >
+              {commentError}
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn btn-sm text-white"
+            style={{ backgroundColor: "#006B3C" }}
+            onClick={handlePostComment}
+            disabled={postingComment || !newComment.trim()}
+            data-testid="post-comment-btn"
+          >
+            {postingComment ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" />
+                Posting...
+              </>
+            ) : (
+              "Post Comment"
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ── Remove modal ── */}

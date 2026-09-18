@@ -9,8 +9,8 @@ import { getPrisma } from "../prisma.js";
  */
 export const getRequesters = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const requesters = await getPrisma().requesterUser.findMany({
-      where:   { isActive: true },
+    const requesters = await getPrisma().user.findMany({
+      where:   { isActive: true, role: "REQUESTER" },
       select:  { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     });

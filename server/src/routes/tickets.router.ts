@@ -5,8 +5,11 @@ import {
   createTicket,
   getTickets,
   getTicketByNumber,
+  setProblemResolved,
 } from "../controllers/tickets.controller.js";
 import { uploadAttachment } from "../controllers/attachments.controller.js";
+import { postComment, getComments } from "../controllers/comments.controller.js";
+import { loadAuthenticatedUser, requireAuth } from "../middleware/auth.middleware.js";
 
 // Store uploaded files in server/uploads/ with a unique name
 const storage = multer.diskStorage({
@@ -27,13 +30,17 @@ const upload = multer({
 
 const router = Router();
 
-// GET /api/tickets — list tickets for a Requester (search/filter/sort/pagination)
+// Lab 3: All ticket routes require authentication
+// Load authenticated user first
+router.use(requireAuth, loadAuthenticatedUser);
+
+// GET /api/tickets — list tickets for authenticated Requester (My Tickets)
 router.get("/", getTickets);
 
 // GET /api/tickets/:ticketNumber — get one owned Ticket with attachments
 router.get("/:ticketNumber", getTicketByNumber);
 
-// POST /api/tickets — create a new ticket (JSON body, no file)
+// POST /api/tickets — create a new ticket (requesterId from session)
 router.post("/", createTicket);
 
 // POST /api/tickets/:ticketNumber/attachments — upload one file to an existing ticket
@@ -56,5 +63,14 @@ router.post(
   },
   uploadAttachment
 );
+
+// POST /api/tickets/:ticketNumber/comments — post a Public Comment on owned ticket
+router.post("/:ticketNumber/comments", postComment);
+
+// GET /api/tickets/:ticketNumber/comments — list Public Comments on owned ticket
+router.get("/:ticketNumber/comments", getComments);
+
+// PATCH /api/tickets/:ticketNumber/problem-resolved — Requester indicates problem appears resolved
+router.patch("/:ticketNumber/problem-resolved", setProblemResolved);
 
 export default router;
