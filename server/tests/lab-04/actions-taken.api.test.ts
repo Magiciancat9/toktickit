@@ -1,7 +1,9 @@
 import { describe, test, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../../../src/app';
-// Import test utilities and database helpers as needed
+import app from '../../src/app.js';
+import { getPrisma } from '../../src/prisma.js';
+
+// const prisma = getPrisma();
 
 /**
  * Lab 4: Actions Taken API Tests
