@@ -13,6 +13,8 @@ import app from '../../../src/app';
  * - Empty states
  * 
  * Related Requirements: FR-18 through FR-25, BR-27, BR-28, BR-32 through BR-35, BR-42
+ * 
+ * @note Verify date calculations handle timezone correctly
  */
 
 describe('Lab 4: Requester Dashboard API', () => {
@@ -137,3 +139,5 @@ describe('Lab 4: Requester Dashboard API', () => {
     test.todo('handles invalid user ID from session gracefully');
   });
 });
+
+////

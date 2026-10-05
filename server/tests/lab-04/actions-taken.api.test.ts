@@ -14,6 +14,8 @@ import app from '../../../src/app';
  * - Validation rules
  * 
  * Related Requirements: FR-41, FR-42, FR-43, BR-01 through BR-14
+ * 
+ * @note Test-Driven Development: Implement these tests before writing the actual API endpoints
  */
 
 describe('Lab 4: Actions Taken API', () => {
@@ -146,3 +148,4 @@ describe('Lab 4: Actions Taken API', () => {
     test.todo('does not leak sensitive information in error messages');
   });
 });
+

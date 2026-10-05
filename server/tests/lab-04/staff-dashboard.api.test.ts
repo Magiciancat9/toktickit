@@ -13,6 +13,8 @@ import app from '../../../src/app';
  * - Empty states
  * 
  * Related Requirements: FR-26 through FR-35, BR-29, BR-30, BR-36 through BR-40, BR-43
+ * 
+ * @note Ensure database queries use indexes efficiently for performance
  */
 
 describe('Lab 4: IT Staff Dashboard API', () => {

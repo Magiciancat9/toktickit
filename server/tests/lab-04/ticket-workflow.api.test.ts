@@ -12,6 +12,8 @@ import app from '../../../src/app';
  * - Status transition validation with resolution prerequisite
  * 
  * Related Requirements: FR-11 through FR-17, BR-21 through BR-26
+ * 
+ * @note Critical: Validate resolution rules even when bypassing UI (direct API calls)
  */
 
 describe('Lab 4: Ticket Resolution Workflow', () => {
