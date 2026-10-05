@@ -247,36 +247,91 @@ To be completed during visual inspection before final PR:
 
 ## 5. Test Commands
 
+### Server Tests (Backend)
+
 ```bash
-# Run all server unit and API tests (from server/ directory)
-npm run test
+# Navigate to server directory
+cd server
 
-# Run specific Lab 4 server tests
+# Run all Lab 4 server tests
+npm run test -- --run tests/lab-04/
+
+# Run specific test file
+npm run test -- --run tests/lab-04/actions-taken.api.test.ts
+
+# Run all server tests (including Labs 1-3 regression)
+npm run test -- --run
+
+# Watch mode for development
 npm run test tests/lab-04/
+```
 
-# Run all client UI component tests (from client/ directory)
-npm run test
+### Client Tests (Frontend)
 
-# Run specific Lab 4 client tests
+```bash
+# Navigate to client directory
+cd client
+
+# Run all Lab 4 client tests
+npm run test -- --run tests/lab-04/
+
+# Run specific test file
+npm run test -- --run tests/lab-04/ActionsTaken.test.tsx
+
+# Run all client tests (including Labs 1-3 regression)
+npm run test -- --run
+
+# Watch mode for development
 npm run test tests/lab-04/
+```
 
-# Run all E2E and responsive tests (from project root, requires running app)
+### E2E Tests (Playwright)
+
+```bash
+# From project root
+
+# Run all Lab 4 E2E tests
 npx playwright test e2e/lab-04/
 
-# Run only responsive screenshot tests
-npx playwright test e2e/lab-04/responsive.spec.ts
+# Run specific E2E test file
+npx playwright test e2e/lab-04/actions-taken-flow.spec.ts
+npx playwright test e2e/lab-04/dashboards.spec.ts
+npx playwright test e2e/lab-04/ticket-resolution.spec.ts
 
-# Run only Actions Taken E2E flow
-npx playwright test e2e/lab-04/actions-flow.spec.ts
+# Run E2E tests in headed mode (see browser)
+npx playwright test e2e/lab-04/ --headed
 
-# Run only Dashboard E2E flows
-npx playwright test e2e/lab-04/requester-dashboard-flow.spec.ts
-npx playwright test e2e/lab-04/staff-dashboard-flow.spec.ts
+# Run E2E tests in debug mode
+npx playwright test e2e/lab-04/ --debug
 
-# Run all regression tests (Labs 1-3)
-npm run test tests/lab-01/ tests/lab-02/ tests/lab-03/ (from server/)
-npm run test tests/lab-01/ tests/lab-02/ tests/lab-03/ (from client/)
-npx playwright test e2e/lab-02/ e2e/lab-03/ (from project root)
+# List all E2E tests without running
+npx playwright test e2e/lab-04/ --list
+
+# Run all E2E tests (including Labs 2-3 regression)
+npx playwright test
+```
+
+### Regression Testing
+
+```bash
+# Server regression (from server/ directory)
+npm run test -- --run tests/lab-01/ tests/lab-02/ tests/lab-03/
+
+# Client regression (from client/ directory)
+npm run test -- --run tests/lab-01/ tests/lab-02/ tests/lab-03/
+
+# E2E regression (from project root)
+npx playwright test e2e/lab-02/ e2e/lab-03/
+```
+
+### Coverage Reports
+
+```bash
+# Server coverage (from server/ directory)
+npm run test:coverage
+
+# Client coverage (from client/ directory)
+npm run test:coverage
 ```
 
 ---
