@@ -72,6 +72,7 @@ model User {
   ticketsOwned          Ticket[]        @relation("TicketOwner")
   publicComments        PublicComment[]
   internalNotes         InternalNote[]
+  actionsTaken          ActionTaken[]   // Lab 4: actions performed by this user
 
   @@index([email])
   @@index([isActive])
@@ -91,9 +92,10 @@ model RelatedSystem {
   @@index([isActive])
 }
 
-// Ticket — core entity created by a Requester (Lab 2), extended in Lab 3.
+// Ticket — core entity created by a Requester (Lab 2), extended in Lab 3 & Lab 4.
 // ticketNumber is unique, backend-generated in format TKT-YYYY-NNNNNN.
 // Lab 3 adds: ownerId (IT Staff/Admin owner), itPriority, problemResolvedByRequester.
+// Lab 4 adds: resolvedAt (timestamp when status changed to RESOLVED), actionsTaken relation.
 model Ticket {
   id                         Int          @id @default(autoincrement())
   ticketNumber               String       @unique
@@ -107,6 +109,7 @@ model Ticket {
   itPriority                 Priority     @default(MEDIUM) // Initially copies requestedPriority, editable by IT Staff
   status                     TicketStatus @default(NEW)
   problemResolvedByRequester Boolean      @default(false) // Requester indicator; does NOT change status
+  resolvedAt                 DateTime?    // Lab 4: timestamp when ticket was resolved (nullable = not yet resolved)
   ticketDate                 DateTime     @default(now())
   createdAt                  DateTime     @default(now())
   updatedAt                  DateTime     @updatedAt
@@ -119,6 +122,7 @@ model Ticket {
   attachments      Attachment[]
   publicComments   PublicComment[]
   internalNotes    InternalNote[]
+  actionsTaken     ActionTaken[]   // Lab 4: actions performed on this ticket
 
   // Indexes on fields used for filtering, sorting, and ownership queries
   @@index([requesterId])           // requester ownership
@@ -129,6 +133,7 @@ model Ticket {
   @@index([status])                // status filter
   @@index([createdAt])             // default sort field
   @@index([updatedAt])             // secondary sort field
+  @@index([resolvedAt])            // Lab 4: dashboard queries for resolution time
 }
 
 // Lab 3: Public Comment — visible to Requester, IT Staff, and Administrator.
@@ -183,4 +188,54 @@ model Attachment {
 
   @@index([ticketId])               // attachment list per ticket
   @@index([removedAt])              // filter active vs removed attachments
+}
+
+// Session table for express-session with connect-pg-simple (added automatically by the session store)
+model session {
+  sid    String   @id @db.VarChar
+  sess   Json     @db.Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire], map: "IDX_session_expire")
+}
+
+// ---------------------------------------------------------------------------
+// Lab 4 — ActionTaken model for ticket workflow tracking
+// ---------------------------------------------------------------------------
+
+// ActionTaken — records actions performed by IT Staff on tickets.
+// Each action documents what was done, the result, and whether follow-up is needed.
+// Design Decision 1: actionDateTime is separate from createdAt because the action
+// may be recorded after it was actually performed (e.g., documenting past work).
+// actionDateTime = when action happened; createdAt = when record was created.
+// Design Decision 2: followupNote is nullable and conditionally required (via
+// business logic) only when followUpRequired=true. This keeps the schema flexible
+// while enforcing the constraint at the application layer (BR-39).
+// Design Decision 3: performerId links to User (not a separate actor table) because
+// all IT Staff are already Users. This maintains referential integrity and audit trail.
+// Design Decision 4: CASCADE delete on ticketId means if a ticket is deleted, all
+// its actions are also deleted (maintaining data consistency). ON DELETE RESTRICT
+// on performerId prevents accidental user deletion if they have recorded actions.
+model ActionTaken {
+  id                Int      @id @default(autoincrement())
+  ticketId          Int                      // FK to Ticket
+  performerId       Int                      // FK to User (IT Staff who performed action)
+  actionDateTime    DateTime @default(now()) // When action was performed
+  actionDescription String   @db.Text        // What was done
+  result            String   @db.Text        // Outcome of the action
+  followUpRequired  Boolean  @default(false) // Does this need follow-up?
+  followupNote      String?  @db.Text        // Required when followUpRequired=true (enforced by BR-39)
+  attachmentNotes   String?  @db.Text        // Optional notes about related attachments
+  createdAt         DateTime @default(now()) // When this record was created
+  updatedAt         DateTime @updatedAt      // Last update timestamp
+
+  // Relations
+  ticket    Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  performer User   @relation(fields: [performerId], references: [id], onDelete: Restrict)
+
+  // Indexes for efficient queries (FR-37)
+  @@index([ticketId])          // Query all actions for a ticket
+  @@index([performerId])       // Query all actions by a user
+  @@index([actionDateTime])    // Sort by action time
+  @@index([followUpRequired])  // Filter actions needing follow-up
 }
