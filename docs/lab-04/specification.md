@@ -652,9 +652,87 @@ This sprint also includes comprehensive regression testing to verify that all au
 **Decision:** Stack metrics cards vertically in single column on mobile; preserve card order; maintain drill-down functionality.  
 **Rationale:** Ensures readability; no horizontal scroll; touch targets remain accessible; simple responsive implementation.
 
+### Database Decision 1: actionDateTime vs createdAt
+**Question:** Why have both actionDateTime and createdAt on ActionTaken?  
+**Decision:** actionDateTime records when the action was actually performed; createdAt records when it was entered into the system.  
+**Rationale:** IT Staff may document actions after-the-fact (e.g., recording work done yesterday, documenting a phone call, batch-entering weekend actions on Monday). Separating these timestamps preserves true chronology for audit purposes while maintaining standard createdAt/updatedAt pattern. Queries for "actions timeline" use actionDateTime; system audit uses createdAt.
+
+### Database Decision 2: followupNote Nullable with Business Logic Validation
+**Question:** Should followupNote be database-enforced NOT NULL when followUpRequired=true?  
+**Decision:** Make followupNote nullable at database level; enforce the conditional requirement via business logic (BR-39) at application layer.  
+**Rationale:** Database-level conditional constraints (CHECK constraints with cross-column dependencies) are complex, database-specific, and hard to modify. Application-level validation is portable, testable, easy to adjust, provides better error messages, and is the established pattern from Labs 1-3. Trade-off: relies on application layer for data integrity, but this is acceptable for a non-critical constraint (no financial/security impact if occasionally violated).
+
+### Database Decision 3: performerId References User, Not Separate Actor
+**Question:** Should we create a separate Actor table for action performers, or use existing User table?  
+**Decision:** Use existing User table with performerId → User(id) foreign key.  
+**Rationale:** All IT Staff are already Users with roles. Creating separate Actor table would duplicate data (user info exists in both places), complicate queries (need joins through two tables), break referential integrity (actions performed by deleted "actors" who are still Users), and add no business value. Current design maintains clean audit trail, leverages existing authentication/authorization, and simplifies queries. Constraint: Only IT_STAFF and ADMINISTRATOR should perform actions (enforced by authorization, not FK).
+
+### Database Decision 4: Cascade Behavior for ActionTaken Foreign Keys
+**Question:** What should happen to ActionsTaken when a Ticket or User is deleted?  
+**Decision:** ON DELETE CASCADE for ticketId; ON DELETE RESTRICT for performerId.  
+**Rationale:** 
+- **Ticket deletion**: If a ticket is deleted (rare but possible for spam/duplicates), its actions should also be deleted to maintain referential integrity. Actions without their parent ticket are meaningless. CASCADE ensures clean removal.
+- **User deletion**: If someone tries to delete a User who has recorded actions, the delete should FAIL (RESTRICT). This prevents loss of audit trail and preserves accountability. Users should be marked isActive=false instead of deleted if they leave the organization.
+
+This asymmetric approach balances data integrity (no orphaned actions) with audit requirements (no accidental action history loss).
+
+### Database Decision 5: resolvedAt Field on Ticket
+**Question:** Should we add resolvedAt timestamp to Ticket, or derive it from ActionsTaken?  
+**Decision:** Add nullable resolvedAt DateTime column to Ticket.  
+**Rationale:** Denormalized data for query performance. Dashboard queries for "Recently Resolved" count need fast filtering on resolvedAt without scanning ActionsTaken join. Alternative (derive from min actionDateTime where status changed to RESOLVED) would require expensive joins and complex query logic. Trade-off: requires application code to maintain resolvedAt when status changes to RESOLVED, but this is acceptable for significant performance gain on dashboard queries. Index on resolvedAt enables efficient range queries.
+
+### Database Decision 6: Index Selection
+**Question:** Which columns need indexes for ActionTaken?  
+**Decision:** Indexes on ticketId, performerId, actionDateTime, followUpRequired (per FR-37). Additionally, index on Ticket.resolvedAt.  
+**Rationale:**
+- **ticketId**: Nearly all queries fetch actions by ticket (Ticket Detail page). High cardinality, frequently queried.
+- **performerId**: Dashboard "my actions" queries, audit queries. Medium cardinality (number of IT Staff).
+- **actionDateTime**: Chronological sorting of actions within a ticket. Used in every actions list. Enables efficient ORDER BY.
+- **followUpRequired**: Filter actions needing follow-up (potential future dashboard metric). Boolean (low cardinality) but small table makes index worthwhile.
+- **resolvedAt**: Dashboard time-range queries (recently resolved count). Nullable but frequently queried in WHERE clause with range operators.
+
+No composite indexes needed - single-column indexes are sufficient for Lab 4 query patterns. Can add composite indexes in future if specific slow queries are identified.
+
 ---
 
 ## 9. Implementation Notes
+
+### Database Migration and Rollback Strategy
+
+**Migration Approach:**
+- Migration adds ActionTaken table and Ticket.resolvedAt column
+- All new columns are nullable or have defaults - no data transformation required
+- Existing tickets remain valid with zero actions (expected state)
+- Foreign keys use standard Prisma naming for consistency
+
+**Data Preservation:**
+- Migration is additive-only - no columns dropped, no data modified
+- All Labs 1-3 tables, foreign keys, and indexes preserved
+- Existing tickets, users, comments, notes, attachments untouched
+- Migration tested on both fresh database and database with existing Lab 3 data
+
+**Legacy Behavior:**
+- Old tickets (created before Lab 4) start with zero actions - this is correct
+- resolvedAt is null for old RESOLVED tickets - dashboard ignores null values in counts
+- Application handles zero-actions case gracefully (shows "No actions yet" message)
+
+**Rollback Procedure:**
+If Lab 4 must be rolled back:
+1. Export critical data if needed: `pg_dump -t ActionTaken toktickit > actions_backup.sql`
+2. Run rollback migration (created manually): `DROP TABLE "ActionTaken" CASCADE; ALTER TABLE "Ticket" DROP COLUMN "resolvedAt";`
+3. Regenerate Prisma client: `npx prisma generate`
+4. Revert application code to Lab 3 state
+
+**Rollback Impact:**
+- All ActionsTaken records will be lost (save backup first if needed)
+- Tickets remain intact with their original data
+- No impact on Users, Categories, RelatedSystems, Attachments, Comments, Notes
+- Ticket.resolvedAt removed but status field preserves resolution state
+
+**Recovery from Partial Migration:**
+- If migration fails mid-way, Prisma migrations are transactional - database remains in pre-migration state
+- Check migration status: `npx prisma migrate status`
+- If stuck in "partially applied" state, resolve manually or reset migration with `npx prisma migrate resolve`
 
 ### Critical Integration Points
 1. **Actions Taken → Ticket Detail:** Integrate Actions Taken section into existing Staff Ticket Detail and Requester Ticket Detail components without disrupting existing sections (comments, notes, attachments).

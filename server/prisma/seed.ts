@@ -330,6 +330,162 @@ async function main() {
     console.log(`  ✓ Internal Note for ${ticket3.ticketNumber}`);
   }
 
+  // 7. Sample ActionsTaken (Lab 4: document actions performed by IT Staff)
+  console.log("Seeding sample actions taken...");
+  
+  // Ticket 3 (IN_PROGRESS) - multiple actions, no follow-up needed
+  if (ticket3 && james) {
+    const action1Created = await prisma.actionTaken.findFirst({
+      where: { 
+        ticketId: ticket3.id,
+        actionDescription: { contains: "Diagnosed issue" }
+      }
+    });
+    
+    if (!action1Created) {
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: ticket3.id,
+          performerId: james.id,
+          actionDateTime: new Date('2026-10-01T10:30:00Z'),
+          actionDescription: "Diagnosed issue with laptop - battery failure suspected",
+          result: "Confirmed battery not charging. Visual inspection shows slight swelling.",
+          followUpRequired: false,
+        },
+      });
+      console.log(`  ✓ ActionTaken for ${ticket3.ticketNumber} (action 1)`);
+    }
+
+    const action2Created = await prisma.actionTaken.findFirst({
+      where: { 
+        ticketId: ticket3.id,
+        actionDescription: { contains: "Ordered replacement" }
+      }
+    });
+    
+    if (!action2Created) {
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: ticket3.id,
+          performerId: james.id,
+          actionDateTime: new Date('2026-10-02T14:15:00Z'),
+          actionDescription: "Ordered replacement battery from vendor",
+          result: "Battery ordered. ETA: 3-5 business days. Order #BAT-2026-1234.",
+          followUpRequired: false,
+        },
+      });
+      console.log(`  ✓ ActionTaken for ${ticket3.ticketNumber} (action 2)`);
+    }
+  }
+
+  // Ticket 2 (OPEN) - one action with follow-up required
+  if (ticket2 && emma) {
+    const action3Created = await prisma.actionTaken.findFirst({
+      where: { 
+        ticketId: ticket2.id,
+        performerId: emma.id,
+      }
+    });
+    
+    if (!action3Created) {
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: ticket2.id,
+          performerId: emma.id,
+          actionDateTime: new Date('2026-10-03T09:00:00Z'),
+          actionDescription: "Investigated WiFi dropping issue in Building A",
+          result: "Identified firmware bug in Building A access points. Vendor patch available.",
+          followUpRequired: true,
+          followupNote: "Schedule maintenance window with facilities team to apply firmware update. Coordinate with all Building A users.",
+        },
+      });
+      console.log(`  ✓ ActionTaken for ${ticket2.ticketNumber} (with follow-up)`);
+    }
+  }
+
+  // Ticket 5 (RESOLVED) - resolution action
+  const ticket5 = await prisma.ticket.findUnique({ where: { ticketNumber: "TKT-2026-000005" } });
+  if (ticket5 && emma && jennifer) {
+    const action4Created = await prisma.actionTaken.findFirst({
+      where: { 
+        ticketId: ticket5.id,
+      }
+    });
+    
+    if (!action4Created) {
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: ticket5.id,
+          performerId: emma.id,
+          actionDateTime: new Date('2026-09-28T16:45:00Z'),
+          actionDescription: "Reconfigured VPN client settings for home network",
+          result: "VPN connection restored. User confirmed successful connection from home.",
+          followUpRequired: false,
+        },
+      });
+      console.log(`  ✓ ActionTaken for ${ticket5.ticketNumber} (resolved)`);
+      
+      // Update resolvedAt timestamp
+      await prisma.ticket.update({
+        where: { id: ticket5.id },
+        data: { resolvedAt: new Date('2026-09-28T16:50:00Z') },
+      });
+      console.log(`  ✓ Updated resolvedAt for ${ticket5.ticketNumber}`);
+    }
+  }
+
+  // Ticket 7 (REOPENED) - multiple actions showing history
+  const ticket7 = await prisma.ticket.findUnique({ where: { ticketNumber: "TKT-2026-000007" } });
+  if (ticket7 && sofia) {
+    const action5Created = await prisma.actionTaken.findFirst({
+      where: { 
+        ticketId: ticket7.id,
+        actionDescription: { contains: "Initial configuration" }
+      }
+    });
+    
+    if (!action5Created) {
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: ticket7.id,
+          performerId: sofia.id,
+          actionDateTime: new Date('2026-09-25T11:00:00Z'),
+          actionDescription: "Initial configuration of email forwarding rule",
+          result: "Forwarding rule created and tested successfully.",
+          followUpRequired: false,
+        },
+      });
+      console.log(`  ✓ ActionTaken for ${ticket7.ticketNumber} (initial fix)`);
+    }
+
+    const action6Created = await prisma.actionTaken.findFirst({
+      where: { 
+        ticketId: ticket7.id,
+        actionDescription: { contains: "Investigated recurring issue" }
+      }
+    });
+    
+    if (!action6Created) {
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: ticket7.id,
+          performerId: sofia.id,
+          actionDateTime: new Date('2026-10-04T13:30:00Z'),
+          actionDescription: "Investigated recurring issue after ticket reopened",
+          result: "Discovered email server policy override blocking forwarding to external domains. Requested policy exception.",
+          followUpRequired: true,
+          followupNote: "Wait for security team approval for policy exception. Expected response: 2-3 business days.",
+        },
+      });
+      console.log(`  ✓ ActionTaken for ${ticket7.ticketNumber} (reopened investigation)`);
+    }
+  }
+
+  // Ticket 1 (NEW) - No actions yet (zero actions scenario)
+  // Ticket 4 (WAITING_FOR_REQUESTER) - No actions yet (another zero actions scenario)
+  // Ticket 6 (CLOSED) - No actions recorded (legacy behavior)
+  // Ticket 8 (CANCELLED) - No actions (cancelled before work started)
+
   console.log("\nSeed complete.");
 }
 
