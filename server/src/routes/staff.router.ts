@@ -9,6 +9,11 @@ import {
   getInternalNotes,
   getUsers,
 } from "../controllers/staff.controller.js";
+import {
+  createAction,
+  getActions,
+  updateAction,
+} from "../controllers/actions.controller.js";
 import { loadAuthenticatedUser, requireAuth } from "../middleware/auth.middleware.js";
 
 const router = Router();
@@ -37,5 +42,15 @@ router.post("/tickets/:ticketNumber/notes", createInternalNote);
 
 // GET /api/staff/tickets/:ticketNumber/notes — List Internal Notes
 router.get("/tickets/:ticketNumber/notes", getInternalNotes);
+
+// Lab 4: Actions Taken endpoints
+// POST /api/staff/tickets/:ticketNumber/actions — Create Action
+router.post("/tickets/:ticketNumber/actions", createAction);
+
+// GET /api/staff/tickets/:ticketNumber/actions — List Actions
+router.get("/tickets/:ticketNumber/actions", getActions);
+
+// PATCH /api/staff/tickets/:ticketNumber/actions/:actionId — Update Action
+router.patch("/tickets/:ticketNumber/actions/:actionId", updateAction);
 
 export default router;

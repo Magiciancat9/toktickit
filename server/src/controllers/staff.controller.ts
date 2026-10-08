@@ -531,13 +531,53 @@ export const updateTicketStatus = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Update status
+    // Lab 4: Validate resolution prerequisite - no incomplete follow-up actions
+    if (statusUpper === 'RESOLVED') {
+      const ticket = await prisma.ticket.findUnique({
+        where: { ticketNumber },
+        select: { id: true },
+      });
+
+      if (ticket) {
+        const incompleteActions = await prisma.actionTaken.findMany({
+          where: {
+            ticketId: ticket.id,
+            followUpRequired: true,
+          },
+          select: {
+            id: true,
+            followupNote: true,
+          },
+        });
+
+        if (incompleteActions.length > 0) {
+          res.status(409).json({
+            error: {
+              message: 'Cannot resolve ticket: unresolved follow-up actions exist',
+              details: incompleteActions.map((action) => ({
+                actionId: action.id,
+                followupNote: action.followupNote,
+              })),
+            },
+          });
+          return;
+        }
+      }
+    }
+
+    // Update status (and set resolvedAt if transitioning to RESOLVED)
+    const updateData: any = { status: statusUpper as any };
+    if (statusUpper === 'RESOLVED') {
+      updateData.resolvedAt = new Date();
+    }
+
     const updatedTicket = await prisma.ticket.update({
       where: { ticketNumber },
-      data: { status: statusUpper as any },
+      data: updateData,
       select: {
         ticketNumber: true,
         status: true,
+        resolvedAt: true,
         updatedAt: true,
       },
     });
@@ -547,6 +587,7 @@ export const updateTicketStatus = async (req: Request, res: Response): Promise<v
         ticket: {
           ticketNumber: updatedTicket.ticketNumber,
           status: updatedTicket.status,
+          resolvedAt: updatedTicket.resolvedAt,
           updatedAt: updatedTicket.updatedAt,
         },
       },
