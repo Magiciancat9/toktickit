@@ -700,3 +700,119 @@ export async function resetAdminUserPassword(id: number, newPassword: string): P
     throw new Error(body?.error?.message ?? `Failed to reset password: ${response.status}`);
   }
 }
+
+// ── Lab 4: Actions Taken ───────────────────────────────────────────────────
+
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  ticketNumber: string;
+  performerId: number;
+  performerName: string;
+  performerRole: UserRole;
+  actionDateTime: string;
+  actionDescription: string;
+  result: string;
+  followUpRequired: boolean;
+  followupNote: string | null;
+  attachmentNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionPayload {
+  actionDescription: string;
+  result: string;
+  followUpRequired: boolean;
+  followupNote?: string;
+  attachmentNotes?: string;
+}
+
+export interface UpdateActionPayload {
+  actionDescription: string;
+  result: string;
+  followUpRequired: boolean;
+  followupNote?: string | null;
+  attachmentNotes?: string | null;
+}
+
+/**
+ * GET /api/staff/tickets/:ticketNumber/actions — Fetch all actions for a ticket
+ * Requires IT_STAFF or ADMINISTRATOR role
+ * Returns actions in chronological order (oldest first)
+ */
+export async function fetchActions(ticketNumber: string): Promise<ActionTaken[]> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/actions`, {
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to load actions: ${response.status}`);
+  }
+  
+  const result = await response.json();
+  return result.data;
+}
+
+/**
+ * POST /api/staff/tickets/:ticketNumber/actions — Create a new action
+ * Requires IT_STAFF or ADMINISTRATOR role
+ * performerId is automatically set from session, not from request body
+ */
+export async function createAction(
+  ticketNumber: string,
+  payload: CreateActionPayload
+): Promise<ActionTaken> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const msg = body?.error?.message ?? `Failed to create action: ${response.status}`;
+    const err = Object.assign(new Error(msg), { 
+      status: response.status,
+      fields: body?.error?.details ?? []
+    });
+    throw err;
+  }
+  
+  const result = await response.json();
+  return result.data;
+}
+
+/**
+ * PATCH /api/staff/tickets/:ticketNumber/actions/:actionId — Update an existing action
+ * Requires IT_STAFF or ADMINISTRATOR role
+ * Only the performer can edit their own action
+ * Action must be < 24 hours old
+ */
+export async function updateAction(
+  ticketNumber: string,
+  actionId: number,
+  payload: UpdateActionPayload
+): Promise<ActionTaken> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/actions/${actionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    credentials: "include",
+  });
+  
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const msg = body?.error?.message ?? `Failed to update action: ${response.status}`;
+    const err = Object.assign(new Error(msg), { 
+      status: response.status,
+      fields: body?.error?.details ?? []
+    });
+    throw err;
+  }
+  
+  const result = await response.json();
+  return result.data;
+}

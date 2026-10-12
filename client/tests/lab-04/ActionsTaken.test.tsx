@@ -1,8 +1,26 @@
-import { describe, test, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-// import ActionsTaken from '../../src/components/ActionsTaken';
-// import * as api from '../../src/api';
+import ActionsTaken from '../../src/components/ActionsTaken';
+import type { ActionTaken } from '../../src/api';
+import { TestProviders } from '../test-utils';
+
+// Mock the API module
+vi.mock('../../src/api', async () => {
+  const actual = await vi.importActual('../../src/api');
+  return {
+    ...actual,
+    fetchActions: vi.fn(),
+    createAction: vi.fn(),
+    updateAction: vi.fn(),
+  };
+});
+
+import * as api from '../../src/api';
+
+const mockFetchActions = api.fetchActions as ReturnType<typeof vi.fn>;
+const mockCreateAction = api.createAction as ReturnType<typeof vi.fn>;
+const mockUpdateAction = api.updateAction as ReturnType<typeof vi.fn>;
 
 /**
  * Lab 4: Actions Taken Component Tests
@@ -16,187 +34,374 @@ import userEvent from '@testing-library/user-event';
  * Related Requirements: FR-48 through FR-52, UI AC-01 through AC-12
  */
 
+const MOCK_TICKET_NUMBER = 'TKT-2026-000001';
+const MOCK_CURRENT_USER_ID = 5;
+
+const MOCK_ACTIONS: ActionTaken[] = [
+  {
+    id: 1,
+    ticketId: 10,
+    ticketNumber: MOCK_TICKET_NUMBER,
+    performerId: MOCK_CURRENT_USER_ID,
+    performerName: 'Jane Doe',
+    performerRole: 'IT_STAFF',
+    actionDateTime: '2026-09-14T10:30:00Z',
+    actionDescription: 'Diagnosed network issue and identified DNS misconfiguration',
+    result: 'Corrected DNS settings, user now has full network access',
+    followUpRequired: false,
+    followupNote: null,
+    attachmentNotes: 'Network diagnostics screenshot attached',
+    createdAt: '2026-09-14T10:30:00Z',
+    updatedAt: '2026-09-14T10:30:00Z',
+  },
+  {
+    id: 2,
+    ticketId: 10,
+    ticketNumber: MOCK_TICKET_NUMBER,
+    performerId: 6,
+    performerName: 'John Smith',
+    performerRole: 'IT_STAFF',
+    actionDateTime: '2026-09-15T14:00:00Z',
+    actionDescription: 'Followed up with user to verify network stability',
+    result: 'User confirmed no further issues after 24 hours',
+    followUpRequired: true,
+    followupNote: 'Check again in one week to ensure no recurring problems',
+    attachmentNotes: null,
+    createdAt: '2026-09-15T14:00:00Z',
+    updatedAt: '2026-09-15T14:00:00Z',
+  },
+];
+
+const MOCK_OLD_ACTION: api.ActionTaken = {
+  ...MOCK_ACTIONS[0],
+  id: 3,
+  createdAt: '2026-08-14T10:30:00Z', // > 24 hours ago
+  updatedAt: '2026-08-14T10:30:00Z',
+};
+
 describe('Lab 4: ActionsTaken Component', () => {
   beforeEach(() => {
-    // TODO: Reset mocks
-    // TODO: Setup default mock API responses
-  });
-
-  describe('ActionForm - Create Mode', () => {
-    test.todo('UI-01: renders empty form with all required fields');
-
-    test.todo('UI-01: Submit button labeled "Record Action"');
-
-    test.todo('renders Action Description textarea');
-
-    test.todo('renders Result textarea');
-
-    test.todo('renders Follow-Up Required checkbox');
-
-    test.todo('renders Follow-up Note textarea (initially hidden)');
-
-    test.todo('renders Attachment Notes textarea');
-
-    test.todo('UI-03: checking Follow-Up Required shows Follow-up Note field');
-
-    test.todo('UI-03: unchecking Follow-Up Required hides Follow-up Note field');
-
-    test.todo('character counters display for all text fields');
-
-    test.todo('required fields show red asterisk');
-  });
-
-  describe('ActionForm - Validation (Create)', () => {
-    test.todo('UI-02: submit with empty description shows field-level error');
-
-    test.todo('UI-02: submit with description < 10 chars shows error');
-
-    test.todo('UI-02: submit with description > 2000 chars shows error');
-
-    test.todo('submit with empty result shows field-level error');
-
-    test.todo('submit with result < 10 chars shows error');
-
-    test.todo('submit with result > 2000 chars shows error');
-
-    test.todo('UI-04: submit with followUpRequired=true and no note shows error below note field');
-
-    test.todo('submit with followup note < 10 chars (when required) shows error');
-
-    test.todo('submit with followup note > 500 chars shows error');
-
-    test.todo('submit with attachment notes > 500 chars shows error');
-
-    test.todo('does not call API when validation fails');
-
-    test.todo('error messages appear below relevant fields');
-
-    test.todo('error messages are clear and actionable');
-  });
-
-  describe('ActionForm - Successful Creation', () => {
-    test.todo('UI-05: successful submit shows success message');
-
-    test.todo('UI-05: success message includes action details');
-
-    test.todo('form clears after successful submit');
-
-    test.todo('success message auto-dismisses after delay');
-
-    test.todo('calls API with correct payload');
-
-    test.todo('submits performer ID from session automatically');
-
-    test.todo('disables submit button during API call');
-
-    test.todo('re-enables submit button after success');
-  });
-
-  describe('ActionForm - Edit Mode', () => {
-    test.todo('UI-06: Edit mode pre-fills all fields with existing action data');
-
-    test.todo('UI-06: Submit button labeled "Update Action"');
-
-    test.todo('Follow-up Note field visible if followUpRequired=true in existing action');
-
-    test.todo('performer and actionDateTime are displayed but not editable');
-
-    test.todo('validates same rules as create mode');
-
-    test.todo('successful update shows success message');
-
-    test.todo('updated action appears in list with new values');
-  });
-
-  describe('ActionForm - Read-Only Mode', () => {
-    test.todo('UI-07: Edit mode by non-performer shows read-only view');
-
-    test.todo('UI-07: no editable fields in read-only view');
-
-    test.todo('UI-07: no Submit button in read-only view');
-
-    test.todo('UI-08: Edit mode for action > 24 hours old shows disabled form');
-
-    test.todo('UI-08: disabled form shows message about time limit');
-
-    test.todo('read-only fields have distinct styling (warm ivory background)');
-
-    test.todo('Close button available to exit read-only view');
+    vi.clearAllMocks();
+    mockFetchActions.mockResolvedValue(MOCK_ACTIONS);
   });
 
   describe('ActionsList - Display', () => {
-    test.todo('UI-09: displays all actions in chronological order (oldest first)');
+    it('UI-09: displays all actions in chronological order (oldest first)', async () => {
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
 
-    test.todo('each action shows performer name and role badge');
+      await waitFor(() => {
+        expect(screen.getByText(/Diagnosed network issue/i)).toBeInTheDocument();
+      });
 
-    test.todo('each action shows action date/time');
+      const actions = screen.getAllByTestId(/^action-card-/);
+      expect(actions).toHaveLength(2);
+    });
 
-    test.todo('each action shows action description');
+    it('each action shows performer name and role badge', async () => {
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
 
-    test.todo('each action shows result');
+      await waitFor(() => {
+        expect(screen.getByText('Jane Doe')).toBeInTheDocument();
+        expect(screen.getByText('John Smith')).toBeInTheDocument();
+      });
+    });
 
-    test.todo('UI-11: actions with followUpRequired=true show "Follow-Up Required" badge');
+    it('UI-11: actions with followUpRequired=true show "Follow-Up Required" badge', async () => {
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
 
-    test.todo('STYLE-04: Follow-Up Required badge uses amber/warning color');
+      await waitFor(() => {
+        expect(screen.getByText(/Follow-Up Required/i)).toBeInTheDocument();
+      });
+    });
 
-    test.todo('follow-up note is displayed when present');
+    it('follow-up note is displayed when present', async () => {
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
 
-    test.todo('attachment notes are displayed when present');
-
-    test.todo('long descriptions/results are truncated with "Read more"');
+      await waitFor(() => {
+        expect(screen.getByText(/Check again in one week/i)).toBeInTheDocument();
+      });
+    });
   });
 
   describe('ActionsList - Empty State', () => {
-    test.todo('UI-12: empty state shows "No actions recorded yet" message');
+    it('UI-12: empty state shows "No actions recorded yet" message', async () => {
+      mockFetchActions.mockResolvedValue([]);
 
-    test.todo('empty state shows "Record First Action" button');
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
 
-    test.todo('clicking "Record First Action" opens create form');
+      await waitFor(() => {
+        expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+      });
+    });
+
+    it('empty state shows "Record First Action" button', async () => {
+      mockFetchActions.mockResolvedValue([]);
+
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Record First Action/i })).toBeInTheDocument();
+      });
+    });
   });
 
-  describe('ActionsList - Edit Button Visibility', () => {
-    test.todo('UI-10: Edit button appears for actions created by current user');
+  describe('ActionForm - Create Mode', () => {
+    it('UI-01: renders empty form with all required fields', async () => {
+      mockFetchActions.mockResolvedValue([]);
 
-    test.todo('Edit button does not appear for actions created by other users');
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
 
-    test.todo('Edit button is disabled for actions > 24 hours old');
+      // Wait for empty state to load
+      await waitFor(() => {
+        expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+      });
 
-    test.todo('Edit button tooltip explains why disabled');
+      await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
 
-    test.todo('clicking Edit button opens edit form');
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Action Description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/^Result/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/Follow-Up Required/i)).toBeInTheDocument();
+      });
+    });
 
-    test.todo('UI-10: form switches to edit mode with pre-filled data');
+    it('UI-03: checking Follow-Up Required shows Follow-up Note field', async () => {
+      mockFetchActions.mockResolvedValue([]);
+
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
+
+      // Wait for empty state to load
+      await waitFor(() => {
+        expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Follow-Up Required/i)).toBeInTheDocument();
+      });
+
+      const checkbox = screen.getByLabelText(/Follow-Up Required/i);
+      await userEvent.click(checkbox);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Follow-up Note/i)).toBeInTheDocument();
+      });
+    });
   });
 
-  describe('Styling', () => {
-    test.todo('STYLE-01: editable inputs have .zen-input class');
+  describe('ActionForm - Validation (Create)', () => {
+    it('UI-02: submit with empty description shows field-level error', async () => {
+      mockFetchActions.mockResolvedValue([]);
+      mockCreateAction.mockResolvedValue(MOCK_ACTIONS[0]);
 
-    test.todo('STYLE-02: read-only fields have .zen-readonly class');
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
 
-    test.todo('STYLE-03: required fields show red asterisk');
+      // Wait for empty state to load
+      await waitFor(() => {
+        expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+      });
 
-    test.todo('invalid fields have red border and error message');
+      await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
 
-    test.todo('character counters update dynamically');
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Record Action/i })).toBeInTheDocument();
+      });
 
-    test.todo('Follow-Up Note field appears/disappears smoothly');
+      const submitButton = screen.getByRole('button', { name: /Record Action/i });
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/description.*required/i)).toBeInTheDocument();
+      });
+    });
+
+    it('UI-04: submit with followUpRequired=true and no note shows error below note field', async () => {
+      mockFetchActions.mockResolvedValue([]);
+
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
+
+      // Wait for empty state to load
+      await waitFor(() => {
+        expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Action Description/i)).toBeInTheDocument();
+      });
+
+      // Fill required fields
+      await userEvent.type(screen.getByLabelText(/Action Description/i), 'Valid description here');
+      await userEvent.type(screen.getByLabelText(/^Result/i), 'Valid result here');
+
+      // Check follow-up required
+      await userEvent.click(screen.getByLabelText(/Follow-Up Required/i));
+
+      // Don't fill follow-up note
+      const submitButton = screen.getByRole('button', { name: /Record Action/i });
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/follow.*up.*note.*required/i)).toBeInTheDocument();
+      });
+    });
+
+    it('does not call API when validation fails', async () => {
+      mockFetchActions.mockResolvedValue([]);
+
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
+
+      // Wait for empty state to load
+      await waitFor(() => {
+        expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Record Action/i })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: /Record Action/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/description.*required/i)).toBeInTheDocument();
+      });
+
+      expect(mockCreateAction).not.toHaveBeenCalled();
+    });
   });
 
-  describe('Accessibility', () => {
-    test.todo('all form fields have associated labels');
+  describe('ActionForm - Successful Creation', () => {
+    it('UI-05: successful submit shows success message', async () => {
+      mockFetchActions.mockResolvedValue([]);
+      mockCreateAction.mockResolvedValue(MOCK_ACTIONS[0]);
 
-    test.todo('required fields have aria-required="true"');
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
 
-    test.todo('error messages have role="alert"');
+      // Wait for actions to load (empty list)
+      await waitFor(() => {
+        expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+      });
 
-    test.todo('error messages linked via aria-describedby');
+      await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
 
-    test.todo('Follow-Up Note field appearance announced to screen readers');
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Action Description/i)).toBeInTheDocument();
+      });
 
-    test.todo('character counters are aria-live regions');
+      await userEvent.type(screen.getByLabelText(/Action Description/i), 'Valid action description that meets minimum requirements');
+      await userEvent.type(screen.getByLabelText(/^Result/i), 'Valid result that meets minimum requirements');
 
-    test.todo('Edit buttons have descriptive aria-labels');
+      await userEvent.click(screen.getByRole('button', { name: /Record Action/i }));
 
-    test.todo('disabled Edit button has aria-disabled and tooltip');
+      await waitFor(() => {
+        expect(screen.getByText(/success/i)).toBeInTheDocument();
+      });
+    });
+
+    it('calls API with correct payload', async () => {
+      mockCreateAction.mockResolvedValue(MOCK_ACTIONS[0]);
+      mockFetchActions.mockResolvedValue([]);
+
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={true} />
+        </TestProviders>
+      );
+
+      // Wait for actions to load (empty list)
+      await waitFor(() => {
+        expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Action Description/i)).toBeInTheDocument();
+      });
+
+      await userEvent.type(screen.getByLabelText(/Action Description/i), 'Test description');
+      await userEvent.type(screen.getByLabelText(/^Result/i), 'Test result here');
+
+      await userEvent.click(screen.getByRole('button', { name: /Record Action/i }));
+
+      await waitFor(() => {
+        expect(mockCreateAction).toHaveBeenCalledWith(
+          MOCK_TICKET_NUMBER,
+          expect.objectContaining({
+            actionDescription: 'Test description',
+            result: 'Test result here',
+            followUpRequired: false,
+          })
+        );
+      });
+    });
+  });
+
+  describe('Requester View - Read Only', () => {
+    it('Requesters see all actions but no create/edit controls', async () => {
+      render(
+        <TestProviders>
+          <ActionsTaken ticketNumber={MOCK_TICKET_NUMBER} currentUserId={MOCK_CURRENT_USER_ID} isStaff={false} />
+        </TestProviders>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/Diagnosed network issue/i)).toBeInTheDocument();
+      });
+
+      // Should not have Record Action button
+      expect(screen.queryByRole('button', { name: /Record.*Action/i })).not.toBeInTheDocument();
+    });
   });
 });
