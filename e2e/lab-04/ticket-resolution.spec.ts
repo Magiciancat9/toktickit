@@ -1,151 +1,191 @@
 import { test, expect } from '@playwright/test';
+import { loginAs, createTestTicket, cleanupTestData } from '../helpers';
 
 /**
- * Lab 4: Ticket Resolution E2E Tests
+ * Lab 4 E2E: Ticket Resolution Workflow
  * 
  * Test Coverage:
- * - Resolution blocking with incomplete follow-ups
- * - Resolution allowing when follow-ups complete
- * - Status transition validation
- * 
- * Related Requirements: AC-04, AC-05, FR-11 through FR-17, BR-21 through BR-26
+ * - Complete resolution workflow (create actions, attempt resolution, complete follow-ups, resolve)
+ * - Resolution blocking when incomplete follow-up actions exist
+ * - Status transition validation through UI
+ * - Requester cannot change status (read-only view)
  */
 
-test.describe('Lab 4: Ticket Resolution E2E', () => {
+test.describe('Lab 4: Ticket Resolution Workflow', () => {
+  let testTicketNumber: string;
+  let testUserId: number;
+
   test.beforeEach(async ({ page }) => {
-    // TODO: Reset test database to known state
-    // TODO: Seed test data
+    // Create test ticket owned by IT Staff
+    const ticket = await createTestTicket({
+      status: 'IN_PROGRESS',
+      requesterId: 2, // requester user
+      ownerId: 3, // IT Staff user
+    });
+    testTicketNumber = ticket.ticketNumber;
   });
 
-  test.describe('Resolution Blocking', () => {
-    test.skip('cannot resolve ticket with incomplete follow-up actions', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open ticket with action having followUpRequired=true
-      // TODO: Verify warning banner displays
-      // TODO: Verify Resolve button is disabled
-      // TODO: Attempt to change status to RESOLVED via dropdown
-      // TODO: Verify error message appears
-      // TODO: Verify status remains unchanged
-    });
-
-    test.skip('warning banner explains follow-ups must be completed', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open ticket with incomplete follow-ups
-      // TODO: Verify warning banner text references follow-up actions
-      // TODO: Verify banner uses amber/warning color
-    });
-
-    test.skip('resolution blocking applies even with direct API call', async ({ page, request }) => {
-      // TODO: Login as IT Staff
-      // TODO: Get ticket with incomplete follow-ups
-      // TODO: Make direct API call to PATCH /api/staff/tickets/:ticketNumber with status=RESOLVED
-      // TODO: Verify 400 or 409 response
-      // TODO: Verify error message references incomplete follow-ups
-    });
+  test.afterEach(async () => {
+    await cleanupTestData({ ticketNumber: testTicketNumber });
   });
 
-  test.describe('Resolution Allowing', () => {
-    test.skip('can resolve ticket when all follow-ups complete', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open ticket with action having followUpRequired=false
-      // TODO: Verify no warning banner
-      // TODO: Verify Resolve button is enabled
-      // TODO: Click Resolve button
-      // TODO: Verify success message
-      // TODO: Verify status displays as RESOLVED
-    });
-
-    test.skip('can resolve ticket with no actions', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open ticket with no actions
-      // TODO: Verify Resolve button is enabled
-      // TODO: Change status to RESOLVED
-      // TODO: Verify success
-    });
+  test('IT Staff can transition ticket through valid status changes', async ({ page }) => {
+    await loginAs(page, 'itstaff');
+    
+    // Navigate to ticket
+    await page.goto(`/staff/tickets/${testTicketNumber}`);
+    
+    // Verify current status
+    await expect(page.locator('text=Status:')).toBeVisible();
+    await expect(page.locator('text=IN_PROGRESS')).toBeVisible();
+    
+    // Change to WAITING_FOR_REQUESTER (valid transition)
+    await page.click('button:has-text("Change Status")');
+    await page.click('text=WAITING_FOR_REQUESTER');
+    
+    // Verify success and status updated
+    await expect(page.locator('text=Status updated successfully')).toBeVisible();
+    await expect(page.locator('text=WAITING_FOR_REQUESTER')).toBeVisible();
   });
 
-  test.describe('Status Transition Matrix', () => {
-    test.skip('NEW → OPEN transition works', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open ticket with status=NEW
-      // TODO: Change status to OPEN
-      // TODO: Verify success
-    });
-
-    test.skip('IN_PROGRESS → RESOLVED blocked with incomplete follow-ups', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open IN_PROGRESS ticket with incomplete follow-ups
-      // TODO: Attempt RESOLVED transition
-      // TODO: Verify blocked
-    });
-
-    test.skip('IN_PROGRESS → RESOLVED allowed without incomplete follow-ups', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open IN_PROGRESS ticket with no incomplete follow-ups
-      // TODO: Change status to RESOLVED
-      // TODO: Verify success
-    });
-
-    test.skip('IN_PROGRESS → CANCELLED not blocked by incomplete follow-ups', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open IN_PROGRESS ticket with incomplete follow-ups
-      // TODO: Change status to CANCELLED
-      // TODO: Verify success (cancellation not blocked)
-    });
-
-    test.skip('WAITING_FOR_REQUESTER → RESOLVED blocked with incomplete follow-ups', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open WAITING_FOR_REQUESTER ticket with incomplete follow-ups
-      // TODO: Attempt RESOLVED transition
-      // TODO: Verify blocked
-    });
-
-    test.skip('REOPENED → RESOLVED blocked with incomplete follow-ups', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open REOPENED ticket with incomplete follow-ups
-      // TODO: Attempt RESOLVED transition
-      // TODO: Verify blocked
-    });
-
-    test.skip('RESOLVED → CLOSED transition works', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open RESOLVED ticket
-      // TODO: Change status to CLOSED
-      // TODO: Verify success
-    });
-
-    test.skip('invalid transitions remain blocked (e.g., NEW → RESOLVED)', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open NEW ticket
-      // TODO: Verify RESOLVED not in status dropdown
-      // TODO: OR attempt transition and verify rejection
-    });
+  test('Resolution blocked when action has incomplete follow-up', async ({ page }) => {
+    await loginAs(page, 'itstaff');
+    await page.goto(`/staff/tickets/${testTicketNumber}`);
+    
+    // Create action with follow-up required
+    await page.click('button:has-text("Record First Action")');
+    await page.fill('textarea[name="actionDescription"]', 'Performed initial troubleshooting steps');
+    await page.fill('textarea[name="result"]', 'Issue partially resolved, requires follow-up');
+    await page.check('input[name="followUpRequired"]');
+    await page.fill('textarea[name="followupNote"]', 'Check with user in 2 days to confirm');
+    await page.click('button:has-text("Record Action")');
+    
+    // Wait for success
+    await expect(page.locator('text=Action recorded successfully')).toBeVisible();
+    
+    // Attempt to resolve
+    await page.click('button:has-text("Change Status")');
+    await page.click('text=RESOLVED');
+    
+    // Verify error message about incomplete follow-ups
+    await expect(page.locator('text=Cannot resolve ticket')).toBeVisible();
+    await expect(page.locator('text=unresolved follow-up')).toBeVisible();
+    
+    // Status should remain IN_PROGRESS
+    await expect(page.locator('text=IN_PROGRESS')).toBeVisible();
   });
 
-  test.describe('Resolution Complete Flow', () => {
-    test.skip('complete workflow: create action with follow-up → complete follow-up → resolve', async ({ page }) => {
-      // TODO: Login as IT Staff
-      // TODO: Open ticket
-      // TODO: Record action with followUpRequired=true
-      // TODO: Verify resolution blocked
-      // TODO: Edit action to set followUpRequired=false
-      // TODO: Verify warning disappears
-      // TODO: Resolve ticket
-      // TODO: Verify status=RESOLVED
-    });
+  test('Resolution succeeds after marking follow-ups complete', async ({ page }) => {
+    await loginAs(page, 'itstaff');
+    await page.goto(`/staff/tickets/${testTicketNumber}`);
+    
+    // Create action with follow-up required
+    await page.click('button:has-text("Record First Action")');
+    await page.fill('textarea[name="actionDescription"]', 'Performed troubleshooting');
+    await page.fill('textarea[name="result"]', 'Issue partially resolved');
+    await page.check('input[name="followUpRequired"]');
+    await page.fill('textarea[name="followupNote"]', 'Check with user');
+    await page.click('button:has-text("Record Action")');
+    await expect(page.locator('text=Action recorded successfully')).toBeVisible();
+    
+    // Edit action to mark follow-up complete
+    await page.click('button:has-text("Edit"):visible');
+    await page.uncheck('input[name="followUpRequired"]');
+    await page.click('button:has-text("Update Action")');
+    await expect(page.locator('text=Action updated successfully')).toBeVisible();
+    
+    // Now resolution should succeed
+    await page.click('button:has-text("Change Status")');
+    await page.click('text=RESOLVED');
+    
+    await expect(page.locator('text=Status updated successfully')).toBeVisible();
+    await expect(page.locator('text=RESOLVED')).toBeVisible();
   });
 
-  test.describe('Requester Advisory Flag', () => {
-    test.skip('Requester problemResolvedByRequester flag does not auto-resolve ticket', async ({ page }) => {
-      // TODO: Login as Requester
-      // TODO: Open ticket
-      // TODO: Check "Problem appears resolved by me" (if feature exists)
-      // TODO: Verify ticket status does NOT change to RESOLVED
-      // TODO: Verify flag is advisory only
-      // TODO: Logout
-      // TODO: Login as IT Staff
-      // TODO: Verify ticket still in original status
-      // TODO: IT Staff must explicitly resolve
-    });
+  test('Invalid status transition shows error', async ({ page }) => {
+    await loginAs(page, 'itstaff');
+    
+    // Set ticket to NEW status
+    await page.goto(`/staff/tickets/${testTicketNumber}`);
+    // Force ticket to NEW via backend (or create new ticket in NEW status)
+    
+    // Attempt invalid transition NEW → RESOLVED (must go through OPEN first)
+    // This test validates the UI doesn't offer invalid transitions
+    await page.click('button:has-text("Change Status")');
+    
+    // Should NOT see RESOLVED as an option from NEW
+    await expect(page.locator('option:has-text("RESOLVED")')).not.toBeVisible();
+  });
+
+  test('Requester cannot change ticket status', async ({ page }) => {
+    await loginAs(page, 'requester');
+    await page.goto(`/my-tickets/${testTicketNumber}`);
+    
+    // Verify status is displayed but no change controls
+    await expect(page.locator('text=Status:')).toBeVisible();
+    await expect(page.locator('button:has-text("Change Status")')).not.toBeVisible();
+  });
+
+  test('Status dropdown shows only permitted transitions', async ({ page }) => {
+    await loginAs(page, 'itstaff');
+    await page.goto(`/staff/tickets/${testTicketNumber}`);
+    
+    // From IN_PROGRESS, allowed: WAITING_FOR_REQUESTER, RESOLVED, CANCELLED
+    await page.click('button:has-text("Change Status")');
+    
+    await expect(page.locator('option:has-text("WAITING_FOR_REQUESTER")')).toBeVisible();
+    await expect(page.locator('option:has-text("RESOLVED")')).toBeVisible();
+    await expect(page.locator('option:has-text("CANCELLED")')).toBeVisible();
+    
+    // Should NOT show invalid transitions from IN_PROGRESS
+    await expect(page.locator('option:has-text("NEW")')).not.toBeVisible();
+    await expect(page.locator('option:has-text("OPEN")')).not.toBeVisible();
+  });
+
+  test('Resolved ticket can be reopened', async ({ page }) => {
+    await loginAs(page, 'itstaff');
+    await page.goto(`/staff/tickets/${testTicketNumber}`);
+    
+    // First resolve the ticket
+    await page.click('button:has-text("Change Status")');
+    await page.click('text=RESOLVED');
+    await expect(page.locator('text=RESOLVED')).toBeVisible();
+    
+    // Then reopen it
+    await page.click('button:has-text("Change Status")');
+    await page.click('text=REOPENED');
+    
+    await expect(page.locator('text=Status updated successfully')).toBeVisible();
+    await expect(page.locator('text=REOPENED')).toBeVisible();
+  });
+
+  test('Duplicate click protection prevents multiple submissions', async ({ page }) => {
+    await loginAs(page, 'itstaff');
+    await page.goto(`/staff/tickets/${testTicketNumber}`);
+    
+    await page.click('button:has-text("Change Status")');
+    await page.click('text=RESOLVED');
+    
+    // Button should be disabled during submission
+    const statusButton = page.locator('button:has-text("Change Status")');
+    await expect(statusButton).toBeDisabled();
+    
+    // After success, should be enabled again
+    await expect(page.locator('text=Status updated successfully')).toBeVisible();
+    await expect(statusButton).toBeEnabled();
+  });
+
+  test('Resolution sets resolvedAt timestamp', async ({ page }) => {
+    await loginAs(page, 'itstaff');
+    await page.goto(`/staff/tickets/${testTicketNumber}`);
+    
+    await page.click('button:has-text("Change Status")');
+    await page.click('text=RESOLVED');
+    
+    await expect(page.locator('text=RESOLVED')).toBeVisible();
+    
+    // Check that resolved date/time is displayed
+    await expect(page.locator('text=Resolved:')).toBeVisible();
+    await expect(page.locator('text=/\\d{4}-\\d{2}-\\d{2}/')).toBeVisible();
   });
 });

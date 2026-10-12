@@ -12,12 +12,15 @@ const prisma = getPrisma();
  * - Resolution blocking when actions have followUpRequired=true (API-11)
  * - Resolution allowing when all followUpRequired=false (API-12)
  * - Status transition validation with resolution prerequisite
+ * - Complete status transition matrix validation (allowed and disallowed)
+ * - Role-based authorization for status transitions
  * 
  * Related Requirements: FR-11 through FR-17, BR-21 through BR-26
  */
 
 describe('Lab 4: Ticket Resolution Workflow', () => {
   let itStaffCookie: string[];
+  let requesterCookie: string[];
   let itStaffId: number;
   let requesterId: number;
   let testTicketNumber: string;
@@ -89,6 +92,13 @@ describe('Lab 4: Ticket Resolution Workflow', () => {
       password: 'TestPass123!',
     });
     itStaffCookie = itStaffLogin.headers['set-cookie'];
+
+    // Login Requester
+    const requesterLogin = await request(app).post('/api/auth/login').send({
+      email: 'requester.workflow@test.com',
+      password: 'TestPass123!',
+    });
+    requesterCookie = requesterLogin.headers['set-cookie'];
   });
 
   afterAll(async () => {
@@ -350,6 +360,149 @@ describe('Lab 4: Ticket Resolution Workflow', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.ticket.updatedAt).toBeDefined();
+    });
+  });
+
+  describe('Status Transition Matrix - Allowed Transitions', () => {
+    const transitionMatrix = [
+      // From NEW
+      { from: 'NEW', to: 'OPEN', shouldWork: true },
+      { from: 'NEW', to: 'CANCELLED', shouldWork: true },
+      { from: 'NEW', to: 'IN_PROGRESS', shouldWork: false },
+      { from: 'NEW', to: 'RESOLVED', shouldWork: false },
+      
+      // From OPEN
+      { from: 'OPEN', to: 'IN_PROGRESS', shouldWork: true },
+      { from: 'OPEN', to: 'CANCELLED', shouldWork: true },
+      { from: 'OPEN', to: 'RESOLVED', shouldWork: false },
+      { from: 'OPEN', to: 'WAITING_FOR_REQUESTER', shouldWork: false },
+      
+      // From IN_PROGRESS
+      { from: 'IN_PROGRESS', to: 'WAITING_FOR_REQUESTER', shouldWork: true },
+      { from: 'IN_PROGRESS', to: 'RESOLVED', shouldWork: true },
+      { from: 'IN_PROGRESS', to: 'CANCELLED', shouldWork: true },
+      { from: 'IN_PROGRESS', to: 'OPEN', shouldWork: false },
+      
+      // From WAITING_FOR_REQUESTER
+      { from: 'WAITING_FOR_REQUESTER', to: 'IN_PROGRESS', shouldWork: true },
+      { from: 'WAITING_FOR_REQUESTER', to: 'RESOLVED', shouldWork: true },
+      { from: 'WAITING_FOR_REQUESTER', to: 'CANCELLED', shouldWork: true },
+      { from: 'WAITING_FOR_REQUESTER', to: 'OPEN', shouldWork: false },
+      
+      // From RESOLVED
+      { from: 'RESOLVED', to: 'CLOSED', shouldWork: true },
+      { from: 'RESOLVED', to: 'REOPENED', shouldWork: true },
+      { from: 'RESOLVED', to: 'IN_PROGRESS', shouldWork: false },
+      
+      // From CLOSED
+      { from: 'CLOSED', to: 'REOPENED', shouldWork: true },
+      { from: 'CLOSED', to: 'IN_PROGRESS', shouldWork: false },
+      { from: 'CLOSED', to: 'RESOLVED', shouldWork: false },
+      
+      // From REOPENED
+      { from: 'REOPENED', to: 'OPEN', shouldWork: true },
+      { from: 'REOPENED', to: 'IN_PROGRESS', shouldWork: true },
+      { from: 'REOPENED', to: 'RESOLVED', shouldWork: true },
+      { from: 'REOPENED', to: 'CANCELLED', shouldWork: true },
+      { from: 'REOPENED', to: 'WAITING_FOR_REQUESTER', shouldWork: false },
+      
+      // From CANCELLED (terminal)
+      { from: 'CANCELLED', to: 'OPEN', shouldWork: false },
+      { from: 'CANCELLED', to: 'RESOLVED', shouldWork: false },
+    ];
+
+    transitionMatrix.forEach(({ from, to, shouldWork }) => {
+      it(`${from} → ${to}: ${shouldWork ? 'allowed' : 'blocked'}`, async () => {
+        // Set ticket to 'from' status
+        await prisma.ticket.update({
+          where: { id: testTicketId },
+          data: { status: from as any },
+        });
+
+        const res = await request(app)
+          .patch(`/api/staff/tickets/${testTicketNumber}/status`)
+          .set('Cookie', itStaffCookie)
+          .send({ status: to });
+
+        if (shouldWork) {
+          expect(res.status).toBe(200);
+          expect(res.body.data.ticket.status).toBe(to);
+        } else {
+          expect(res.status).toBe(400);
+          expect(res.body.error.code).toBe('INVALID_TRANSITION');
+          expect(res.body.error.message).toContain('Invalid status transition');
+        }
+      });
+    });
+  });
+
+  describe('Authorization - Requester Cannot Change Status', () => {
+    it('Requester cannot change ticket status - returns 403', async () => {
+      await prisma.ticket.update({
+        where: { id: testTicketId },
+        data: { status: 'OPEN' },
+      });
+
+      const res = await request(app)
+        .patch(`/api/staff/tickets/${testTicketNumber}/status`)
+        .set('Cookie', requesterCookie)
+        .send({ status: 'IN_PROGRESS' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('Unauthenticated user cannot change status - returns 401', async () => {
+      const res = await request(app)
+        .patch(`/api/staff/tickets/${testTicketNumber}/status`)
+        .send({ status: 'IN_PROGRESS' });
+
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('Edge Cases and Validation', () => {
+    it('Invalid status value returns 400', async () => {
+      const res = await request(app)
+        .patch(`/api/staff/tickets/${testTicketNumber}/status`)
+        .set('Cookie', itStaffCookie)
+        .send({ status: 'INVALID_STATUS' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('Missing status in request body returns 400', async () => {
+      const res = await request(app)
+        .patch(`/api/staff/tickets/${testTicketNumber}/status`)
+        .set('Cookie', itStaffCookie)
+        .send({});
+
+      expect(res.status).toBe(400);
+    });
+
+    it('Nonexistent ticket returns 404', async () => {
+      const res = await request(app)
+        .patch(`/api/staff/tickets/TKT-9999-NONEXISTENT/status`)
+        .set('Cookie', itStaffCookie)
+        .send({ status: 'OPEN' });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('Case insensitive status values work', async () => {
+      await prisma.ticket.update({
+        where: { id: testTicketId },
+        data: { status: 'NEW' },
+      });
+
+      const res = await request(app)
+        .patch(`/api/staff/tickets/${testTicketNumber}/status`)
+        .set('Cookie', itStaffCookie)
+        .send({ status: 'open' }); // lowercase
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.ticket.status).toBe('OPEN');
     });
   });
 });
