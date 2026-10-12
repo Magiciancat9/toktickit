@@ -493,7 +493,7 @@ export async function updateItPriority(
 export async function updateTicketStatus(
   ticketNumber: string,
   status: string
-): Promise<void> {
+): Promise<{ ticketNumber: string; status: string; resolvedAt: string | null; updatedAt: string }> {
   const response = await fetch(`${API_URL}/api/staff/tickets/${ticketNumber}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -503,8 +503,19 @@ export async function updateTicketStatus(
   
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body?.error?.message ?? `Failed to update status: ${response.status}`);
+    const err = Object.assign(
+      new Error(body?.error?.message ?? `Failed to update status: ${response.status}`),
+      { 
+        status: response.status,
+        code: body?.error?.code,
+        details: body?.error?.details || body?.details,
+      }
+    );
+    throw err;
   }
+  
+  const result = await response.json();
+  return result.data.ticket;
 }
 
 // ── Internal Notes ─────────────────────────────────────────────────────────

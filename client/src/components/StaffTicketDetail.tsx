@@ -162,6 +162,7 @@ export function StaffTicketDetail({ ticketNumber, onBack }: StaffTicketDetailPro
   const [updatingPriority, setUpdatingPriority] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   // ── Load ticket ────────────────────────────────────────────────────────
 
@@ -243,6 +244,8 @@ export function StaffTicketDetail({ ticketNumber, onBack }: StaffTicketDetailPro
 
     setUpdatingStatus(true);
     setUpdateSuccess(null);
+    setUpdateError(null);
+    
     try {
       await updateTicketStatus(ticketNumber, newStatus);
       const updated = await fetchStaffTicketByNumber(ticketNumber);
@@ -250,7 +253,18 @@ export function StaffTicketDetail({ ticketNumber, onBack }: StaffTicketDetailPro
       setUpdateSuccess("Status updated successfully");
       setTimeout(() => setUpdateSuccess(null), 3000);
     } catch (err: any) {
-      alert(err.message || "Failed to update status");
+      // Handle 409 Conflict - incomplete follow-up actions
+      if (err.status === 409 && err.details) {
+        const actionCount = err.details.length;
+        const detailsList = err.details
+          .map((d: any) => `• Action #${d.actionId}: ${d.followupNote}`)
+          .join('\n');
+        setUpdateError(
+          `Cannot resolve ticket: ${actionCount} action(s) require follow-up:\n${detailsList}\n\nPlease edit the actions to mark follow-ups complete.`
+        );
+      } else {
+        setUpdateError(err.message || "Failed to update status");
+      }
     } finally {
       setUpdatingStatus(false);
     }
@@ -428,6 +442,19 @@ export function StaffTicketDetail({ ticketNumber, onBack }: StaffTicketDetailPro
             type="button"
             className="btn-close"
             onClick={() => setUpdateSuccess(null)}
+            aria-label="Close"
+          ></button>
+        </div>
+      )}
+
+      {/* Error message */}
+      {updateError && (
+        <div className="alert alert-danger alert-dismissible fade show" role="alert" style={{ whiteSpace: 'pre-line' }}>
+          {updateError}
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setUpdateError(null)}
             aria-label="Close"
           ></button>
         </div>
