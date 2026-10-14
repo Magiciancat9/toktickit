@@ -518,6 +518,70 @@ export async function updateTicketStatus(
   return result.data.ticket;
 }
 
+// Dashboard metrics interfaces (Lab 4)
+export interface RequesterDashboardMetrics {
+  totalOpen: number;
+  waitingForRequester: number;
+  recentlyUpdated: number;
+  recentlyResolved: number;
+}
+
+export interface StaffDashboardMetrics {
+  unassigned: number;
+  myAssigned: number;
+  recentlyUpdated: number;
+  highPriorityUnresolved: number;
+  byStatus: {
+    NEW: number;
+    OPEN: number;
+    IN_PROGRESS: number;
+    WAITING_FOR_REQUESTER: number;
+    RESOLVED: number;
+    REOPENED: number;
+  };
+  byPriority: {
+    LOW: number;
+    MEDIUM: number;
+    HIGH: number;
+  };
+}
+
+/**
+ * GET /api/dashboards/requester — Get Requester dashboard metrics
+ * Authorization: REQUESTER role only
+ */
+export async function fetchRequesterDashboard(): Promise<RequesterDashboardMetrics> {
+  const response = await fetch(`${API_URL}/api/dashboards/requester`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to fetch dashboard: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.data;
+}
+
+/**
+ * GET /api/dashboards/staff — Get IT Staff dashboard metrics
+ * Authorization: IT_STAFF or ADMINISTRATOR role only
+ */
+export async function fetchStaffDashboard(): Promise<StaffDashboardMetrics> {
+  const response = await fetch(`${API_URL}/api/dashboards/staff`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Failed to fetch dashboard: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.data;
+}
+
 // ── Internal Notes ─────────────────────────────────────────────────────────
 
 export interface InternalNote {
