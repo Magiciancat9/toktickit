@@ -66,12 +66,15 @@ const ALL_TICKETS = [
 
 // ── Prisma mock ───────────────────────────────────────────────────────────
 
-const mockFindMany = vi.fn();
-const mockCount = vi.fn();
+let mockFindMany: any;
+let mockCount: any;
 
 vi.mock("../../src/prisma.js", () => ({
   getPrisma: () => ({
-    ticket: { findMany: mockFindMany, count: mockCount },
+    ticket: { 
+      findMany: (...args: any[]) => mockFindMany(...args), 
+      count: (...args: any[]) => mockCount(...args) 
+    },
   }),
 }));
 
@@ -114,6 +117,8 @@ vi.mock("../../src/middleware/auth.middleware.js", () => ({
 describe("GET /api/staff/tickets — IT Staff Ticket Queue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFindMany = vi.fn();
+    mockCount = vi.fn();
     mockFindMany.mockResolvedValue(ALL_TICKETS);
     mockCount.mockResolvedValue(ALL_TICKETS.length);
   });

@@ -5,7 +5,7 @@ import { app } from "../../src/app.js";
 // Mock Prisma so the test never needs a real DB connection.
 vi.mock("../../src/prisma.js", () => ({
   getPrisma: () => ({
-    requesterUser: {
+    user: {
       findMany: vi.fn().mockResolvedValue([
         { id: 1, name: "Jennifer Anderson", email: "jennifer.anderson@example.com" },
         { id: 2, name: "Michael Brown",     email: "michael.brown@example.com" },
