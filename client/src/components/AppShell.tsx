@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { useAuth } from "../context/AuthContext.js";
 
-type Page = "my-tickets" | "create-ticket" | "staff-queue" | "user-management";
+type Page = "dashboard" | "my-tickets" | "create-ticket" | "staff-queue" | "user-management";
 
 interface AppShellProps {
   children: ReactNode;
@@ -39,6 +39,8 @@ export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
     <>
       {/* ── Navigation bar ── */}
       <nav
+        role="navigation"
+        aria-label="Main navigation"
         className="navbar navbar-expand-md px-3 px-md-4"
         style={{ backgroundColor: "#006B3C" }}
         data-testid="app-shell-nav"
@@ -75,6 +77,17 @@ export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
                 <li className="nav-item">
                   <button
                     className="nav-link text-white btn p-2 border-0"
+                    style={navLinkStyle("dashboard")}
+                    onClick={() => onNavigate?.("dashboard")}
+                    data-testid="nav-dashboard"
+                    aria-current={activePage === "dashboard" ? "page" : undefined}
+                  >
+                    Dashboard
+                  </button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className="nav-link text-white btn p-2 border-0"
                     style={navLinkStyle("my-tickets")}
                     onClick={() => onNavigate?.("my-tickets")}
                     data-testid="nav-my-tickets"
@@ -97,17 +110,30 @@ export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
               </>
             )}
             {(user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR") && (
-              <li className="nav-item">
-                <button
-                  className="nav-link text-white btn p-2 border-0"
-                  style={navLinkStyle("staff-queue")}
-                  onClick={() => onNavigate?.("staff-queue")}
-                  data-testid="nav-ticket-queue"
-                  aria-current={activePage === "staff-queue" ? "page" : undefined}
-                >
-                  Ticket Queue
-                </button>
-              </li>
+              <>
+                <li className="nav-item">
+                  <button
+                    className="nav-link text-white btn p-2 border-0"
+                    style={navLinkStyle("dashboard")}
+                    onClick={() => onNavigate?.("dashboard")}
+                    data-testid="nav-dashboard"
+                    aria-current={activePage === "dashboard" ? "page" : undefined}
+                  >
+                    Dashboard
+                  </button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className="nav-link text-white btn p-2 border-0"
+                    style={navLinkStyle("staff-queue")}
+                    onClick={() => onNavigate?.("staff-queue")}
+                    data-testid="nav-ticket-queue"
+                    aria-current={activePage === "staff-queue" ? "page" : undefined}
+                  >
+                    Ticket Queue
+                  </button>
+                </li>
+              </>
             )}
             {user?.role === "ADMINISTRATOR" && (
               <li className="nav-item">
@@ -163,6 +189,7 @@ export function AppShell({ children, activePage, onNavigate }: AppShellProps) {
 
       {/* ── Page content ── */}
       <main
+        role="main"
         className="container-fluid px-3 px-md-4 py-4"
         style={{ backgroundColor: "#F5F7F6", minHeight: "calc(100vh - 56px)" }}
       >
