@@ -8,255 +8,244 @@
 
 ## Pull Requests I authored
 
-| PR | Branch | Reviewer verdict |
-| --- | --- | --- |
-| [#TBD](https://github.com/Magiciancat9/toktickit/pull/TBD) | feature/4-specification | TBD |
-| [#TBD](https://github.com/Magiciancat9/toktickit/pull/TBD) | feature/4-database-and-tests | TBD |
-| [#TBD](https://github.com/Magiciancat9/toktickit/pull/TBD) | feature/4-actions-api | TBD |
-| [#TBD](https://github.com/Magiciancat9/toktickit/pull/TBD) | feature/4-dashboards-api | TBD |
-| [#TBD](https://github.com/Magiciancat9/toktickit/pull/TBD) | feature/4-actions-ui | TBD |
-| [#TBD](https://github.com/Magiciancat9/toktickit/pull/TBD) | feature/4-dashboards-ui | TBD |
-| [#TBD](https://github.com/Magiciancat9/toktickit/pull/TBD) | feature/4-e2e-and-visual | TBD |
-| [#TBD](https://github.com/Magiciancat9/toktickit/pull/TBD) | feature/4-regression-testing | TBD |
-| [#TBD](https://github.com/Magiciancat9/toktickit/pull/TBD) | docs/lab4-evidence | TBD |
-
+| Issue | PR | Branch | Reviewer | Verdict
+| --- | --- | --- | ---| --- |
+|#59| (https://github.com/Magiciancat9/toktickit/pull/60) | feature1/lab4-specification | @martinvadre | Approved and merged |
+|#61| (https://github.com/Magiciancat9/toktickit/pull/63) | feature2/lab4-tests | @martinvadre | Approved and merged |
+|#64| (https://github.com/Magiciancat9/toktickit/pull/65) | feature3/lab4-database | @martinvadre | Approved and merged |
+|#66| (https://github.com/Magiciancat9/toktickit/pull/67) | feature4/lab4-actions-api | @martinvadre | Approved and merged |
+|#68| (https://github.com/Magiciancat9/toktickit/pull/76) | feature5/lab4-actions-ui | @martinvadre | Approved and merged |
+|#69| (https://github.com/Magiciancat9/toktickit/pull/77) | feature6/lab4-ticket-workflow | @martinvadre | Approved and merged |
+|#70| (https://github.com/Magiciancat9/toktickit/pull/78) | feature7/lab4-dashboards-api | @martinvadre | Approved and merged |
+|#71| (https://github.com/Magiciancat9/toktickit/pull/79) | feature8/lab4-dashboards-ui | @martinvadre | Approved and merged |
+|#72| (https://github.com/Magiciancat9/toktickit/pull/80) | feature9/lab4-regression | @martinvadre | Approved and merged |
+|#73| (https://github.com/Magiciancat9/toktickit/pull/81) | feature10/lab4-accessibility-polish | @martinvadre | Approved and merged |
 ---
 
 ## Review comments I received and my responses
 
-### Sprint specification and test planning - PR #TBD
+### My PR #60 - Issue #59
 
 [martinvadre] commented:
 
-> [Review comment to be added]
+> everything is great! spotless overall, approved
 
 My response:
 
-> [My response to be added]
+> Ok thankyou, you can merge for me.
 
 ---
 
-### Database schema and test setup - PR #TBD
+### My PR #63 - Issue #61
 
 [martinvadre] commented:
 
-> [Review comment to be added]
+> I've got through you code and it's looks great, approved
 
 My response:
 
-> [My response to be added]
+> Thank you for comment, You can merge for me now.
 
 ---
 
-### Actions Taken API endpoints - PR #TBD
+### My PR #65 - Issue #64
 
 [martinvadre] commented:
 
-> [Review comment to be added]
+> Sorry for Inconvenient, I've go through your code, overall you did a great job, solid structure, clean code, approved  
 
 My response:
 
-> [My response to be added]
+> Thank you so much for spent the time for comment this feature for me, you can merge for me.
 
 ---
 
-### Dashboards API endpoints - PR #TBD
+### My PR #67 - Issue #66
 
 [martinvadre] commented:
 
-> [Review comment to be added]
+> I go through all your work and it's looks great!, I think it's ready to merge
 
 My response:
 
-> [My response to be added]
+> Ok great! you can merge for me now.
 
 ---
 
-### Actions Taken UI components - PR #TBD
+### My PR #76 - Issue #68
 
 [martinvadre] commented:
 
-> [Review comment to be added]
+> Your code looks decent, seems to not cause any issue, approved
 
 My response:
 
-> [My response to be added]
+> Thank you for review my code, You can merge now
 
 ---
 
-### Dashboards UI components - PR #TBD
+### My PR #77 - Issue #69
 
 [martinvadre] commented:
 
-> [Review comment to be added]
+> I've go through all your code, the new one you've add and the old one you've fixed is very decent job, approved
 
 My response:
 
-> [My response to be added]
+> Thank for checking my pull request, you can merge for me
 
 ---
 
-### E2E tests and responsive verification - PR #TBD
+### My PR #78 - Issue #70
 
 [martinvadre] commented:
 
-> [Review comment to be added]
+> all good, no possible issue in sight, approved
 
 My response:
 
-> [My response to be added]
+> Thank you for reviewing, you can merge it
 
 ---
 
-### Regression testing - PR #TBD
+### My PR #79 - Issue #71
 
 [martinvadre] commented:
 
-> [Review comment to be added]
+> From all your code, the one you fix is pretty decent, the one you added is good, approved
 
 My response:
 
-> [My response to be added]
+> Thank you for review my code, You can merge for me now
 
 ---
 
-### Documentation and evidence - PR #TBD
+### My PR #80 - Issue #72
 
 [martinvadre] commented:
 
-> [Review comment to be added]
+> Your implementation is pretty good, new code is great, approved
 
 My response:
 
-> [My response to be added]
+> Thank you for approve, you can merge it for me now
 
 ---
+
+### My PR #81 - Issue #73
+
+[martinvadre] commented:
+
+> The .md file looks good, what you added is decent, I think it's all good
+
+My response:
+
+> Thank you for checking it for me, you can merge it now
+
+---
+
 
 ## Pull Requests I reviewed for my partner
 
-| PR | Branch | Reviewer verdict |
-| --- | --- | --- |
-| [#TBD](https://github.com/martinvadre/toktickit/pull/TBD) | feature/4-specification | TBD |
-| [#TBD](https://github.com/martinvadre/toktickit/pull/TBD) | feature/4-database-and-tests | TBD |
-| [#TBD](https://github.com/martinvadre/toktickit/pull/TBD) | feature/4-actions-api | TBD |
-| [#TBD](https://github.com/martinvadre/toktickit/pull/TBD) | feature/4-dashboards-api | TBD |
-| [#TBD](https://github.com/martinvadre/toktickit/pull/TBD) | feature/4-actions-ui | TBD |
-| [#TBD](https://github.com/martinvadre/toktickit/pull/TBD) | feature/4-dashboards-ui | TBD |
-| [#TBD](https://github.com/martinvadre/toktickit/pull/TBD) | feature/4-e2e-and-visual | TBD |
-| [#TBD](https://github.com/martinvadre/toktickit/pull/TBD) | feature/4-regression-testing | TBD |
-| [#TBD](https://github.com/martinvadre/toktickit/pull/TBD) | docs/lab4-evidence | TBD |
+| Issue | PR | Branch | Reviewer | Verdict
+| --- | --- | --- | ---| --- |
+|#17| (https://github.com/martinvadre/toktickit/pull/62) | feature/17-spec-and-tests | @Magiciancat9 | Approved and merged |
+|#18| (https://github.com/martinvadre/toktickit/pull/63) | feature/18-actions-taken-foundation | @Magiciancat9 | Approved and merged |
+|#19| (https://github.com/martinvadre/toktickit/pull/64) | feature/19-actions-taken-ui | @Magiciancat9 | Approved and merged |
+|#20| (https://github.com/martinvadre/toktickit/pull/65) | feature/20-ticket-workflow | @Magiciancat9 | Approved and merged |
+|#21| (https://github.com/martinvadre/toktickit/pull/70) | feature/21-role-dashboards | @Magiciancat9 | Approved and merged |
+|#22| (https://github.com/martinvadre/toktickit/pull/72) | feature/22-final-hardening | @Magiciancat9 | Approved and merged |
+|-| (https://github.com/martinvadre/toktickit/pull/73) | lab4-staging |  @Magiciancat9 |Approved and merged |
 
----
+
+
 
 ## My review comments and my partner's responses
 
-### Sprint specification and test planning - PR #TBD
+### PR #62 - Issue #17
 
 My review:
 
-> [My review to be added]
+> I had seen and checked the contract, specification, test are so good and the detail are fine enough approve.
 
 Partner responded:
 
-> [Partner's response to be added]
+> Thank you for the review, you can now merge for me
 
 ---
 
-### Database schema and test setup - PR #TBD
+### PR #63 - Issue #18
 
 My review:
 
-> [My review to be added]
+> Your prisma, api , and see data are now look good, approve.
 
 Partner responded:
 
-> [Partner's response to be added]
+> Thank you for reviewing my codes, you can now merge for me
 
 ---
 
-### Actions Taken API endpoints - PR #TBD
+### PR #64 - Issue #19
 
 My review:
 
-> [My review to be added]
+> Your IT Staff and Requester views are looking good, Approved.
 
 Partner responded:
 
-> [Partner's response to be added]
+> Okay, you can now merge for me
 
 ---
 
-### Dashboards API endpoints - PR #TBD
+### PR #65 - Issue #20
 
 My review:
 
-> [My review to be added]
+> Your ticket workflow, resolution gate, concurrency conflict handling looking good after I checking, approve
 
 Partner responded:
 
-> [Partner's response to be added]
+> You can merge now
 
 ---
 
-### Actions Taken UI components - PR #TBD
+### PR #70 - Issue #21
 
 My review:
 
-> [My review to be added]
+> Your code dash board and Authoritative Metrics look good enough, Approve
 
 Partner responded:
 
-> [Partner's response to be added]
+> Okay, you can now merge for me
 
 ---
 
-### Dashboards UI components - PR #TBD
+###  PR #72 - Issue #22
 
 My review:
 
-> [My review to be added]
+> I have see the evidence, e2e , and Documentation look good, Approve
 
 Partner responded:
 
-> [Partner's response to be added]
+> Thanh you for reviewing my PR, now you can merge
 
 ---
 
-### E2E tests and responsive verification - PR #TBD
+### PR #73 - Issue -
 
 My review:
 
-> [My review to be added]
+> Your overall action, code, dashboard looking you made it so far very good, Approve
 
 Partner responded:
 
-> [Partner's response to be added]
+> Thank you, merge for me
 
 ---
 
-### Regression testing - PR #TBD
-
-My review:
-
-> [My review to be added]
-
-Partner responded:
-
-> [Partner's response to be added]
-
----
-
-### Documentation and evidence - PR #TBD
-
-My review:
-
-> [My review to be added]
-
-Partner responded:
-
-> [Partner's response to be added]
-
----
 
 ## Notes
 
