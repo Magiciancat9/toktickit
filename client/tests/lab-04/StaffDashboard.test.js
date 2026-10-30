@@ -1,92 +1,222 @@
-import { describe, test, beforeEach } from 'vitest';
-// import StaffDashboard from '../../src/components/StaffDashboard';
-// import * as api from '../../src/api';
-/**
- * Lab 4: IT Staff Dashboard Component Tests
- *
- * Test Coverage:
- * - Rendering all 6 metric cards
- * - Loading, loaded, empty, error states
- * - Drill-down navigation
- * - Zen Green styling
- *
- * Related Requirements: FR-53, FR-54, FR-55, UI AC-18 through AC-23
- */
+import { jsx as _jsx } from "react/jsx-runtime";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import StaffDashboard from '../../src/components/StaffDashboard';
+import { TestProviders } from '../test-utils';
+// Mock the API module
+vi.mock('../../src/api', async () => {
+    const actual = await vi.importActual('../../src/api');
+    return {
+        ...actual,
+        fetchStaffDashboard: vi.fn(),
+    };
+});
+import * as api from '../../src/api';
+const mockFetchStaffDashboard = api.fetchStaffDashboard;
 describe('Lab 4: StaffDashboard Component', () => {
+    const mockMetrics = {
+        unassigned: 15,
+        myAssigned: 8,
+        recentlyUpdated: 22,
+        highPriorityUnresolved: 4,
+        byStatus: {
+            NEW: 5,
+            OPEN: 12,
+            IN_PROGRESS: 18,
+            WAITING_FOR_REQUESTER: 7,
+            RESOLVED: 45,
+            REOPENED: 2,
+        },
+        byPriority: {
+            LOW: 35,
+            MEDIUM: 50,
+            HIGH: 12,
+        },
+    };
     beforeEach(() => {
-        // TODO: Reset mocks
-        // TODO: Setup default mock API responses
+        vi.clearAllMocks();
     });
-    describe('Rendering and Initial State', () => {
-        test.todo('UI-18: renders all 6 metric cards with correct structure');
-        test.todo('renders Unassigned Tickets card');
-        test.todo('renders My Assigned Tickets card');
-        test.todo('renders Tickets by Status breakdown card');
-        test.todo('renders Tickets by Priority breakdown card');
-        test.todo('renders Recently Updated card');
-        test.todo('renders High Priority Unresolved card');
-        test.todo('UI-22: displays loading state while fetching data');
-        test.todo('loading state shows skeleton or spinner for each card');
+    describe('Loading State', () => {
+        it('displays loading skeleton while fetching data', () => {
+            mockFetchStaffDashboard.mockImplementation(() => new Promise(() => { }));
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            expect(screen.getByText('IT Staff Dashboard')).toBeInTheDocument();
+            expect(document.querySelectorAll('.skeleton').length).toBeGreaterThan(0);
+        });
     });
-    describe('Loaded State with Data', () => {
-        test.todo('displays correct counts for all 6 metrics');
-        test.todo('formats large numbers readably (e.g., comma separators)');
-        test.todo('UI-19: byStatus breakdown shows all status categories');
-        test.todo('UI-19: byPriority breakdown shows all priority categories (LOW, MEDIUM, HIGH)');
-        test.todo('byStatus breakdown includes: NEW, OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER, RESOLVED, REOPENED');
-        test.todo('byStatus breakdown excludes CLOSED and CANCELLED');
-        test.todo('each metric card includes descriptive label');
-        test.todo('each metric card includes drill-down link or button');
+    describe('Data Display', () => {
+        it('displays all primary metrics when data loads successfully', async () => {
+            mockFetchStaffDashboard.mockResolvedValue(mockMetrics);
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Unassigned')).toBeInTheDocument();
+            });
+            expect(screen.getByText('15')).toBeInTheDocument();
+            expect(screen.getByText('My Assigned')).toBeInTheDocument();
+            expect(screen.getByText('8')).toBeInTheDocument();
+            expect(screen.getByText('High Priority')).toBeInTheDocument();
+            expect(screen.getByText('4')).toBeInTheDocument();
+            expect(screen.getByText('22')).toBeInTheDocument();
+        });
+        it('displays status breakdown with badges', async () => {
+            mockFetchStaffDashboard.mockResolvedValue(mockMetrics);
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('NEW')).toBeInTheDocument();
+            });
+            expect(screen.getByText('OPEN')).toBeInTheDocument();
+            expect(screen.getByText('IN PROGRESS')).toBeInTheDocument();
+            expect(screen.getByText('WAITING')).toBeInTheDocument();
+            expect(screen.getByText('RESOLVED')).toBeInTheDocument();
+            expect(screen.getByText('REOPENED')).toBeInTheDocument();
+            expect(screen.getByText('5')).toBeInTheDocument();
+            expect(screen.getByText('12')).toBeInTheDocument();
+            expect(screen.getByText('18')).toBeInTheDocument();
+            expect(screen.getByText('7')).toBeInTheDocument();
+            expect(screen.getByText('45')).toBeInTheDocument();
+            expect(screen.getByText('2')).toBeInTheDocument();
+        });
+        it('displays priority breakdown', async () => {
+            mockFetchStaffDashboard.mockResolvedValue(mockMetrics);
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Tickets by Priority')).toBeInTheDocument();
+            });
+            expect(screen.getByText('HIGH')).toBeInTheDocument();
+            expect(screen.getByText('MEDIUM')).toBeInTheDocument();
+            expect(screen.getByText('LOW')).toBeInTheDocument();
+            expect(screen.getByText('35')).toBeInTheDocument();
+            expect(screen.getByText('50')).toBeInTheDocument();
+        });
+        it('displays zero values correctly', async () => {
+            mockFetchStaffDashboard.mockResolvedValue({
+                unassigned: 0,
+                myAssigned: 0,
+                recentlyUpdated: 0,
+                highPriorityUnresolved: 0,
+                byStatus: {
+                    NEW: 0,
+                    OPEN: 0,
+                    IN_PROGRESS: 0,
+                    WAITING_FOR_REQUESTER: 0,
+                    RESOLVED: 0,
+                    REOPENED: 0,
+                },
+                byPriority: {
+                    LOW: 0,
+                    MEDIUM: 0,
+                    HIGH: 0,
+                },
+            });
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('IT Staff Dashboard')).toBeInTheDocument();
+            });
+            const zeroValues = screen.getAllByText('0');
+            expect(zeroValues.length).toBeGreaterThan(0);
+        });
     });
     describe('Empty State', () => {
-        test.todo('UI-21: displays "0" for zero counts, cards remain visible');
-        test.todo('shows neutral/positive message when counts are zero');
-        test.todo('byStatus and byPriority show structure even with all zeros');
-        test.todo('does not hide cards with zero counts');
-        test.todo('layout remains consistent with zero values');
+        it('displays empty state when no tickets need attention', async () => {
+            mockFetchStaffDashboard.mockResolvedValue({
+                unassigned: 0,
+                myAssigned: 0,
+                recentlyUpdated: 0,
+                highPriorityUnresolved: 0,
+                byStatus: {
+                    NEW: 0,
+                    OPEN: 0,
+                    IN_PROGRESS: 0,
+                    WAITING_FOR_REQUESTER: 0,
+                    RESOLVED: 0,
+                    REOPENED: 0,
+                },
+                byPriority: {
+                    LOW: 0,
+                    MEDIUM: 0,
+                    HIGH: 0,
+                },
+            });
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText(/All Clear/i)).toBeInTheDocument();
+            });
+            expect(screen.getByText(/No tickets require immediate attention/i)).toBeInTheDocument();
+        });
     });
     describe('Error State', () => {
-        test.todo('UI-23: displays error message on API failure');
-        test.todo('UI-23: provides retry option in error state');
-        test.todo('error message is user-friendly');
-        test.todo('retry button calls API again');
-        test.todo('error state does not crash the application');
-        test.todo('handles network errors gracefully');
-        test.todo('handles 403 Forbidden with appropriate message');
-        test.todo('handles 500 Server Error with appropriate message');
+        it('displays error message when API call fails', async () => {
+            mockFetchStaffDashboard.mockRejectedValue(new Error('Failed to load dashboard'));
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Unable to Load Dashboard')).toBeInTheDocument();
+            });
+            expect(screen.getByText('Failed to load dashboard')).toBeInTheDocument();
+            expect(screen.getByText('Retry')).toBeInTheDocument();
+        });
+        it('retry button calls API again', async () => {
+            mockFetchStaffDashboard.mockRejectedValueOnce(new Error('Failed'));
+            mockFetchStaffDashboard.mockResolvedValueOnce(mockMetrics);
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Retry')).toBeInTheDocument();
+            });
+            await userEvent.click(screen.getByText('Retry'));
+            await waitFor(() => {
+                expect(screen.getByText('Unassigned')).toBeInTheDocument();
+            });
+        });
     });
-    describe('Drill-Down Navigation', () => {
-        test.todo('UI-20: clicking Unassigned card navigates to Ticket Queue with itStaffId=null filter');
-        test.todo('UI-20: clicking My Assigned card navigates to Ticket Queue with itStaffId=current filter');
-        test.todo('UI-20: clicking Recently Updated card navigates to Ticket Queue with updatedAt filter');
-        test.todo('UI-20: clicking High Priority card navigates to Ticket Queue with itPriority=HIGH filter');
-        test.todo('clicking byStatus category navigates to Ticket Queue with status filter');
-        test.todo('clicking byPriority category navigates to Ticket Queue with priority filter');
-        test.todo('navigation preserves authentication context');
-        test.todo('navigation uses correct route paths');
-    });
-    describe('Styling and Design', () => {
-        test.todo('STYLE-05: dashboard cards use Zen Green accent color (#006B3C or #0B7A46)');
-        test.todo('metric counts are large and prominent (36px or equivalent)');
-        test.todo('card labels are readable and descriptive');
-        test.todo('cards have consistent white background');
-        test.todo('cards have subtle borders and shadows');
-        test.todo('hover states provide visual feedback');
-        test.todo('cards maintain equal height within rows');
-        test.todo('spacing and padding are consistent');
+    describe('Drill-down Links', () => {
+        it('primary metrics have "View All" links', async () => {
+            mockFetchStaffDashboard.mockResolvedValue(mockMetrics);
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Unassigned')).toBeInTheDocument();
+            });
+            const viewAllLinks = screen.getAllByText(/View All/i);
+            expect(viewAllLinks.length).toBeGreaterThan(0);
+        });
+        it('status breakdown cards have View links', async () => {
+            mockFetchStaffDashboard.mockResolvedValue(mockMetrics);
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Tickets by Status')).toBeInTheDocument();
+            });
+            const viewLinks = screen.getAllByText(/View →/i);
+            expect(viewLinks.length).toBeGreaterThan(0);
+        });
     });
     describe('Accessibility', () => {
-        test.todo('all metric cards are keyboard accessible');
-        test.todo('cards have appropriate ARIA labels');
-        test.todo('drill-down links are keyboard navigable');
-        test.todo('focus states are visible');
-        test.todo('screen reader announces card counts');
-        test.todo('loading state is announced to screen readers');
-        test.todo('error state is announced to screen readers');
-    });
-    describe('Responsiveness (Layout Logic)', () => {
-        test.todo('uses appropriate CSS classes for responsive grid');
-        test.todo('grid configuration changes for different viewports');
-        test.todo('no horizontal overflow at narrow widths');
+        it('has accessible labels for all links', async () => {
+            mockFetchStaffDashboard.mockResolvedValue(mockMetrics);
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Unassigned')).toBeInTheDocument();
+            });
+            expect(screen.getByLabelText('View unassigned tickets')).toBeInTheDocument();
+            expect(screen.getByLabelText('View my assigned tickets')).toBeInTheDocument();
+            expect(screen.getByLabelText('View high priority tickets')).toBeInTheDocument();
+        });
+        it('has semantic heading structure', async () => {
+            mockFetchStaffDashboard.mockResolvedValue(mockMetrics);
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByRole('heading', { level: 1, name: 'IT Staff Dashboard' })).toBeInTheDocument();
+            });
+            expect(screen.getByRole('heading', { level: 2, name: 'Ticket Overview' })).toBeInTheDocument();
+        });
+        it('status badges have text labels not just colors', async () => {
+            mockFetchStaffDashboard.mockResolvedValue(mockMetrics);
+            render(_jsx(TestProviders, { children: _jsx(StaffDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('NEW')).toBeInTheDocument();
+            });
+            // All status badges should have text
+            expect(screen.getByText('OPEN')).toBeInTheDocument();
+            expect(screen.getByText('IN PROGRESS')).toBeInTheDocument();
+            expect(screen.getByText('RESOLVED')).toBeInTheDocument();
+        });
     });
 });

@@ -1,85 +1,154 @@
-import { describe, test, beforeEach } from 'vitest';
-// import RequesterDashboard from '../../src/components/RequesterDashboard';
-// import * as api from '../../src/api';
-/**
- * Lab 4: Requester Dashboard Component Tests
- *
- * Test Coverage:
- * - Rendering all 4 metric cards
- * - Loading, loaded, empty, error states
- * - Drill-down navigation
- * - Zen Green styling
- *
- * Related Requirements: FR-53, FR-55, UI AC-13 through AC-17
- */
+import { jsx as _jsx } from "react/jsx-runtime";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import RequesterDashboard from '../../src/components/RequesterDashboard';
+import { TestProviders } from '../test-utils';
+// Mock the API module
+vi.mock('../../src/api', async () => {
+    const actual = await vi.importActual('../../src/api');
+    return {
+        ...actual,
+        fetchRequesterDashboard: vi.fn(),
+    };
+});
+import * as api from '../../src/api';
+const mockFetchRequesterDashboard = api.fetchRequesterDashboard;
 describe('Lab 4: RequesterDashboard Component', () => {
     beforeEach(() => {
-        // TODO: Reset mocks
-        // TODO: Setup default mock API responses
+        vi.clearAllMocks();
     });
-    describe('Rendering and Initial State', () => {
-        test.todo('UI-13: renders all 4 metric cards with correct structure');
-        test.todo('renders Total Open Tickets card');
-        test.todo('renders Waiting for Requester card');
-        test.todo('renders Recently Updated card');
-        test.todo('renders Recently Resolved card');
-        test.todo('UI-16: displays loading state while fetching data');
-        test.todo('loading state shows skeleton or spinner for each card');
+    describe('Loading State', () => {
+        it('displays loading skeleton while fetching data', () => {
+            mockFetchRequesterDashboard.mockImplementation(() => new Promise(() => { }));
+            render(_jsx(TestProviders, { children: _jsx(RequesterDashboard, {}) }));
+            expect(screen.getByText('Dashboard')).toBeInTheDocument();
+            expect(screen.getAllByTestId(/skeleton/i).length).toBeGreaterThan(0) ||
+                expect(document.querySelectorAll('.skeleton').length).toBeGreaterThan(0);
+        });
     });
-    describe('Loaded State with Data', () => {
-        test.todo('displays correct counts for all 4 metrics');
-        test.todo('formats large numbers readably');
-        test.todo('each metric card includes descriptive label');
-        test.todo('each metric card includes drill-down link or button');
-        test.todo('Recently Updated card shows "(Last 7 Days)" subtitle');
-        test.todo('Recently Resolved card shows "(Last 30 Days)" subtitle');
+    describe('Data Display', () => {
+        it('displays all four metrics when data loads successfully', async () => {
+            mockFetchRequesterDashboard.mockResolvedValue({
+                totalOpen: 5,
+                waitingForRequester: 2,
+                recentlyUpdated: 3,
+                recentlyResolved: 8,
+            });
+            render(_jsx(TestProviders, { children: _jsx(RequesterDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Open Tickets')).toBeInTheDocument();
+            });
+            expect(screen.getByText('5')).toBeInTheDocument();
+            expect(screen.getByText('Waiting for You')).toBeInTheDocument();
+            expect(screen.getByText('2')).toBeInTheDocument();
+            expect(screen.getByText('Recently Updated')).toBeInTheDocument();
+            expect(screen.getByText('3')).toBeInTheDocument();
+            expect(screen.getByText('Recently Resolved')).toBeInTheDocument();
+            expect(screen.getByText('8')).toBeInTheDocument();
+        });
+        it('displays zero values correctly', async () => {
+            mockFetchRequesterDashboard.mockResolvedValue({
+                totalOpen: 0,
+                waitingForRequester: 0,
+                recentlyUpdated: 0,
+                recentlyResolved: 0,
+            });
+            render(_jsx(TestProviders, { children: _jsx(RequesterDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Dashboard')).toBeInTheDocument();
+            });
+            const zeroValues = screen.getAllByText('0');
+            expect(zeroValues.length).toBeGreaterThanOrEqual(4);
+        });
     });
     describe('Empty State', () => {
-        test.todo('UI-15: displays "0" for zero counts, cards remain visible');
-        test.todo('shows positive message when counts are zero (e.g., "Great! You\'re all caught up")');
-        test.todo('does not hide cards with zero counts');
-        test.todo('layout remains consistent with zero values');
+        it('displays empty state when all metrics are zero', async () => {
+            mockFetchRequesterDashboard.mockResolvedValue({
+                totalOpen: 0,
+                waitingForRequester: 0,
+                recentlyUpdated: 0,
+                recentlyResolved: 0,
+            });
+            render(_jsx(TestProviders, { children: _jsx(RequesterDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText(/Welcome to TokTickIT/i)).toBeInTheDocument();
+            });
+            expect(screen.getByText(/don't have any tickets yet/i)).toBeInTheDocument();
+        });
     });
     describe('Error State', () => {
-        test.todo('UI-17: displays error message on API failure');
-        test.todo('UI-17: provides retry option in error state');
-        test.todo('error message is user-friendly');
-        test.todo('retry button calls API again');
-        test.todo('error state does not crash the application');
-        test.todo('handles network errors gracefully');
-        test.todo('handles 403 Forbidden with appropriate message');
-        test.todo('handles 500 Server Error with appropriate message');
+        it('displays error message when API call fails', async () => {
+            mockFetchRequesterDashboard.mockRejectedValue(new Error('Failed to load dashboard'));
+            render(_jsx(TestProviders, { children: _jsx(RequesterDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Unable to Load Dashboard')).toBeInTheDocument();
+            });
+            expect(screen.getByText('Failed to load dashboard')).toBeInTheDocument();
+            expect(screen.getByText('Retry')).toBeInTheDocument();
+        });
+        it('retry button calls API again', async () => {
+            mockFetchRequesterDashboard.mockRejectedValueOnce(new Error('Failed'));
+            mockFetchRequesterDashboard.mockResolvedValueOnce({
+                totalOpen: 5,
+                waitingForRequester: 2,
+                recentlyUpdated: 3,
+                recentlyResolved: 8,
+            });
+            render(_jsx(TestProviders, { children: _jsx(RequesterDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Retry')).toBeInTheDocument();
+            });
+            await userEvent.click(screen.getByText('Retry'));
+            await waitFor(() => {
+                expect(screen.getByText('Open Tickets')).toBeInTheDocument();
+            });
+        });
     });
-    describe('Drill-Down Navigation', () => {
-        test.todo('UI-14: clicking Total Open card navigates to My Tickets (default view)');
-        test.todo('UI-14: clicking Waiting For Me card navigates to My Tickets with status=WAITING_FOR_REQUESTER filter');
-        test.todo('UI-14: clicking Recently Updated card navigates to My Tickets with updatedAt sort/filter');
-        test.todo('UI-14: clicking Recently Resolved card navigates to My Tickets with status=RESOLVED filter');
-        test.todo('navigation preserves authentication context');
-        test.todo('navigation uses correct route paths');
-    });
-    describe('Styling and Design', () => {
-        test.todo('STYLE-05: dashboard cards use Zen Green accent color');
-        test.todo('metric counts are large and prominent');
-        test.todo('card labels are readable and descriptive');
-        test.todo('cards have consistent white background');
-        test.todo('cards have subtle borders and shadows');
-        test.todo('hover states provide visual feedback');
-        test.todo('cards maintain equal height within rows');
-        test.todo('spacing and padding are consistent');
+    describe('Drill-down Links', () => {
+        it('all metric cards have "View All" links', async () => {
+            mockFetchRequesterDashboard.mockResolvedValue({
+                totalOpen: 5,
+                waitingForRequester: 2,
+                recentlyUpdated: 3,
+                recentlyResolved: 8,
+            });
+            render(_jsx(TestProviders, { children: _jsx(RequesterDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Open Tickets')).toBeInTheDocument();
+            });
+            const viewAllLinks = screen.getAllByText(/View All/i);
+            expect(viewAllLinks.length).toBe(4);
+        });
     });
     describe('Accessibility', () => {
-        test.todo('all metric cards are keyboard accessible');
-        test.todo('cards have appropriate ARIA labels');
-        test.todo('drill-down links are keyboard navigable');
-        test.todo('focus states are visible');
-        test.todo('screen reader announces card counts');
-        test.todo('loading state is announced to screen readers');
-        test.todo('error state is announced to screen readers');
-    });
-    describe('Responsiveness (Layout Logic)', () => {
-        test.todo('uses appropriate CSS classes for responsive grid');
-        test.todo('grid configuration changes for different viewports');
-        test.todo('no horizontal overflow at narrow widths');
+        it('has accessible labels for all links', async () => {
+            mockFetchRequesterDashboard.mockResolvedValue({
+                totalOpen: 5,
+                waitingForRequester: 2,
+                recentlyUpdated: 3,
+                recentlyResolved: 8,
+            });
+            render(_jsx(TestProviders, { children: _jsx(RequesterDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByText('Open Tickets')).toBeInTheDocument();
+            });
+            expect(screen.getByLabelText('View all open tickets')).toBeInTheDocument();
+            expect(screen.getByLabelText('View tickets waiting for response')).toBeInTheDocument();
+            expect(screen.getByLabelText('View recently updated tickets')).toBeInTheDocument();
+            expect(screen.getByLabelText('View recently resolved tickets')).toBeInTheDocument();
+        });
+        it('has semantic heading structure', async () => {
+            mockFetchRequesterDashboard.mockResolvedValue({
+                totalOpen: 5,
+                waitingForRequester: 2,
+                recentlyUpdated: 3,
+                recentlyResolved: 8,
+            });
+            render(_jsx(TestProviders, { children: _jsx(RequesterDashboard, {}) }));
+            await waitFor(() => {
+                expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument();
+            });
+        });
     });
 });

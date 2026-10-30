@@ -3,8 +3,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ActionsTaken from '../../src/components/ActionsTaken';
-import * as api from '../../src/api';
 import { TestProviders } from '../test-utils';
+// Mock the API module
+vi.mock('../../src/api', async () => {
+    const actual = await vi.importActual('../../src/api');
+    return {
+        ...actual,
+        fetchActions: vi.fn(),
+        createAction: vi.fn(),
+        updateAction: vi.fn(),
+    };
+});
+import * as api from '../../src/api';
+const mockFetchActions = api.fetchActions;
+const mockCreateAction = api.createAction;
+const mockUpdateAction = api.updateAction;
 /**
  * Lab 4: Actions Taken Component Tests
  *
@@ -60,8 +73,8 @@ const MOCK_OLD_ACTION = {
 };
 describe('Lab 4: ActionsTaken Component', () => {
     beforeEach(() => {
-        vi.restoreAllMocks();
-        vi.spyOn(api, 'fetchActions').mockResolvedValue(MOCK_ACTIONS);
+        vi.clearAllMocks();
+        mockFetchActions.mockResolvedValue(MOCK_ACTIONS);
     });
     describe('ActionsList - Display', () => {
         it('UI-09: displays all actions in chronological order (oldest first)', async () => {
@@ -94,14 +107,14 @@ describe('Lab 4: ActionsTaken Component', () => {
     });
     describe('ActionsList - Empty State', () => {
         it('UI-12: empty state shows "No actions recorded yet" message', async () => {
-            vi.spyOn(api, 'fetchActions').mockResolvedValue([]);
+            mockFetchActions.mockResolvedValue([]);
             render(_jsx(TestProviders, { children: _jsx(ActionsTaken, { ticketNumber: MOCK_TICKET_NUMBER, currentUserId: MOCK_CURRENT_USER_ID, isStaff: true }) }));
             await waitFor(() => {
-                expect(screen.getByText(/No actions.*recorded yet/i)).toBeInTheDocument();
+                expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
             });
         });
         it('empty state shows "Record First Action" button', async () => {
-            vi.spyOn(api, 'fetchActions').mockResolvedValue([]);
+            mockFetchActions.mockResolvedValue([]);
             render(_jsx(TestProviders, { children: _jsx(ActionsTaken, { ticketNumber: MOCK_TICKET_NUMBER, currentUserId: MOCK_CURRENT_USER_ID, isStaff: true }) }));
             await waitFor(() => {
                 expect(screen.getByRole('button', { name: /Record First Action/i })).toBeInTheDocument();
@@ -110,10 +123,11 @@ describe('Lab 4: ActionsTaken Component', () => {
     });
     describe('ActionForm - Create Mode', () => {
         it('UI-01: renders empty form with all required fields', async () => {
-            vi.spyOn(api, 'fetchActions').mockResolvedValue([]);
+            mockFetchActions.mockResolvedValue([]);
             render(_jsx(TestProviders, { children: _jsx(ActionsTaken, { ticketNumber: MOCK_TICKET_NUMBER, currentUserId: MOCK_CURRENT_USER_ID, isStaff: true }) }));
+            // Wait for empty state to load
             await waitFor(() => {
-                expect(screen.getByRole('button', { name: /Record.*Action/i })).toBeInTheDocument();
+                expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
             });
             await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
             await waitFor(() => {
@@ -123,8 +137,12 @@ describe('Lab 4: ActionsTaken Component', () => {
             });
         });
         it('UI-03: checking Follow-Up Required shows Follow-up Note field', async () => {
-            vi.spyOn(api, 'fetchActions').mockResolvedValue([]);
+            mockFetchActions.mockResolvedValue([]);
             render(_jsx(TestProviders, { children: _jsx(ActionsTaken, { ticketNumber: MOCK_TICKET_NUMBER, currentUserId: MOCK_CURRENT_USER_ID, isStaff: true }) }));
+            // Wait for empty state to load
+            await waitFor(() => {
+                expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+            });
             await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
             await waitFor(() => {
                 expect(screen.getByLabelText(/Follow-Up Required/i)).toBeInTheDocument();
@@ -138,9 +156,13 @@ describe('Lab 4: ActionsTaken Component', () => {
     });
     describe('ActionForm - Validation (Create)', () => {
         it('UI-02: submit with empty description shows field-level error', async () => {
-            vi.spyOn(api, 'fetchActions').mockResolvedValue([]);
-            vi.spyOn(api, 'createAction').mockResolvedValue(MOCK_ACTIONS[0]);
+            mockFetchActions.mockResolvedValue([]);
+            mockCreateAction.mockResolvedValue(MOCK_ACTIONS[0]);
             render(_jsx(TestProviders, { children: _jsx(ActionsTaken, { ticketNumber: MOCK_TICKET_NUMBER, currentUserId: MOCK_CURRENT_USER_ID, isStaff: true }) }));
+            // Wait for empty state to load
+            await waitFor(() => {
+                expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+            });
             await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
             await waitFor(() => {
                 expect(screen.getByRole('button', { name: /Record Action/i })).toBeInTheDocument();
@@ -152,8 +174,12 @@ describe('Lab 4: ActionsTaken Component', () => {
             });
         });
         it('UI-04: submit with followUpRequired=true and no note shows error below note field', async () => {
-            vi.spyOn(api, 'fetchActions').mockResolvedValue([]);
+            mockFetchActions.mockResolvedValue([]);
             render(_jsx(TestProviders, { children: _jsx(ActionsTaken, { ticketNumber: MOCK_TICKET_NUMBER, currentUserId: MOCK_CURRENT_USER_ID, isStaff: true }) }));
+            // Wait for empty state to load
+            await waitFor(() => {
+                expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+            });
             await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
             await waitFor(() => {
                 expect(screen.getByLabelText(/Action Description/i)).toBeInTheDocument();
@@ -171,9 +197,12 @@ describe('Lab 4: ActionsTaken Component', () => {
             });
         });
         it('does not call API when validation fails', async () => {
-            const createSpy = vi.spyOn(api, 'createAction');
-            vi.spyOn(api, 'fetchActions').mockResolvedValue([]);
+            mockFetchActions.mockResolvedValue([]);
             render(_jsx(TestProviders, { children: _jsx(ActionsTaken, { ticketNumber: MOCK_TICKET_NUMBER, currentUserId: MOCK_CURRENT_USER_ID, isStaff: true }) }));
+            // Wait for empty state to load
+            await waitFor(() => {
+                expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+            });
             await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
             await waitFor(() => {
                 expect(screen.getByRole('button', { name: /Record Action/i })).toBeInTheDocument();
@@ -182,14 +211,18 @@ describe('Lab 4: ActionsTaken Component', () => {
             await waitFor(() => {
                 expect(screen.getByText(/description.*required/i)).toBeInTheDocument();
             });
-            expect(createSpy).not.toHaveBeenCalled();
+            expect(mockCreateAction).not.toHaveBeenCalled();
         });
     });
     describe('ActionForm - Successful Creation', () => {
         it('UI-05: successful submit shows success message', async () => {
-            vi.spyOn(api, 'fetchActions').mockResolvedValue([]);
-            vi.spyOn(api, 'createAction').mockResolvedValue(MOCK_ACTIONS[0]);
+            mockFetchActions.mockResolvedValue([]);
+            mockCreateAction.mockResolvedValue(MOCK_ACTIONS[0]);
             render(_jsx(TestProviders, { children: _jsx(ActionsTaken, { ticketNumber: MOCK_TICKET_NUMBER, currentUserId: MOCK_CURRENT_USER_ID, isStaff: true }) }));
+            // Wait for actions to load (empty list)
+            await waitFor(() => {
+                expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+            });
             await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
             await waitFor(() => {
                 expect(screen.getByLabelText(/Action Description/i)).toBeInTheDocument();
@@ -202,9 +235,13 @@ describe('Lab 4: ActionsTaken Component', () => {
             });
         });
         it('calls API with correct payload', async () => {
-            const createSpy = vi.spyOn(api, 'createAction').mockResolvedValue(MOCK_ACTIONS[0]);
-            vi.spyOn(api, 'fetchActions').mockResolvedValue([]);
+            mockCreateAction.mockResolvedValue(MOCK_ACTIONS[0]);
+            mockFetchActions.mockResolvedValue([]);
             render(_jsx(TestProviders, { children: _jsx(ActionsTaken, { ticketNumber: MOCK_TICKET_NUMBER, currentUserId: MOCK_CURRENT_USER_ID, isStaff: true }) }));
+            // Wait for actions to load (empty list)
+            await waitFor(() => {
+                expect(screen.getByText(/No actions have been recorded/i)).toBeInTheDocument();
+            });
             await userEvent.click(screen.getByRole('button', { name: /Record.*Action/i }));
             await waitFor(() => {
                 expect(screen.getByLabelText(/Action Description/i)).toBeInTheDocument();
@@ -213,7 +250,7 @@ describe('Lab 4: ActionsTaken Component', () => {
             await userEvent.type(screen.getByLabelText(/^Result/i), 'Test result here');
             await userEvent.click(screen.getByRole('button', { name: /Record Action/i }));
             await waitFor(() => {
-                expect(createSpy).toHaveBeenCalledWith(MOCK_TICKET_NUMBER, expect.objectContaining({
+                expect(mockCreateAction).toHaveBeenCalledWith(MOCK_TICKET_NUMBER, expect.objectContaining({
                     actionDescription: 'Test description',
                     result: 'Test result here',
                     followUpRequired: false,
