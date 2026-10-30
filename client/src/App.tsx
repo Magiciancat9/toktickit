@@ -9,8 +9,11 @@ import { TicketDetail } from "./components/TicketDetail.js";
 import StaffTicketQueue from "./components/StaffTicketQueue.js";
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 import { UserManagement } from "./components/UserManagement.js";
+import RequesterDashboard from "./components/RequesterDashboard.js";
+import StaffDashboard from "./components/StaffDashboard.js";
 
 type Page =
+  | { name: "dashboard" }
   | { name: "my-tickets" }
   | { name: "create-ticket" }
   | { name: "ticket-detail"; ticketNumber: string }
@@ -78,7 +81,9 @@ export default function App() {
           : page.name
       }
       onNavigate={(p) => {
-        if (p === "my-tickets") {
+        if (p === "dashboard") {
+          setPage({ name: "dashboard" });
+        } else if (p === "my-tickets") {
           setPage({ name: "my-tickets" });
         } else if (p === "create-ticket") {
           setPage({ name: "create-ticket" });
@@ -90,7 +95,20 @@ export default function App() {
       }}
     >
       {/* Requester pages */}
-      {page.name === "create-ticket" && user.role === "REQUESTER" ? (
+      {page.name === "dashboard" && user.role === "REQUESTER" ? (
+        <RequesterDashboard
+          onNavigate={(destination) => {
+            if (destination === "my-tickets") {
+              setPage({ name: "my-tickets" });
+            } else {
+              setPage({ name: "create-ticket" });
+            }
+          }}
+        />
+      ) : page.name === "dashboard" &&
+        (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") ? (
+        <StaffDashboard onNavigate={() => setPage({ name: "staff-queue" })} />
+      ) : page.name === "create-ticket" && user.role === "REQUESTER" ? (
         <CreateTicket onCancel={() => setPage({ name: "my-tickets" })} />
       ) : page.name === "ticket-detail" && user.role === "REQUESTER" ? (
         <TicketDetail

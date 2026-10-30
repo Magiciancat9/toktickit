@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { fetchStaffDashboard, StaffDashboardMetrics } from '../api';
 import './StaffDashboard.css';
 
-const StaffDashboard = () => {
-  const navigate = useNavigate();
+interface StaffDashboardProps {
+  onNavigate?: () => void;
+}
+
+const StaffDashboard = ({ onNavigate }: StaffDashboardProps) => {
   const [metrics, setMetrics] = useState<StaffDashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,10 @@ const StaffDashboard = () => {
 
   const handleRetry = () => {
     loadDashboard();
+  };
+
+  const navigate = (_path: string) => {
+    onNavigate?.();
   };
 
   if (loading) {

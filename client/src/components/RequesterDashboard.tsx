@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { fetchRequesterDashboard, RequesterDashboardMetrics } from '../api';
 import './RequesterDashboard.css';
 
-const RequesterDashboard = () => {
-  const navigate = useNavigate();
+interface RequesterDashboardProps {
+  onNavigate?: (destination: 'my-tickets' | 'create-ticket') => void;
+}
+
+const RequesterDashboard = ({ onNavigate }: RequesterDashboardProps) => {
   const [metrics, setMetrics] = useState<RequesterDashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,10 @@ const RequesterDashboard = () => {
 
   const handleRetry = () => {
     loadDashboard();
+  };
+
+  const navigate = (path: string) => {
+    onNavigate?.(path.endsWith('/new') ? 'create-ticket' : 'my-tickets');
   };
 
   if (loading) {
