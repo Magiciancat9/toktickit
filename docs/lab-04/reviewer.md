@@ -20,6 +20,7 @@
 |#71| (https://github.com/Magiciancat9/toktickit/pull/79) | feature8/lab4-dashboards-ui | @martinvadre | Approved and merged |
 |#72| (https://github.com/Magiciancat9/toktickit/pull/80) | feature9/lab4-regression | @martinvadre | Approved and merged |
 |#73| (https://github.com/Magiciancat9/toktickit/pull/81) | feature10/lab4-accessibility-polish | @martinvadre | Approved and merged |
+|#74| (https://github.com/Magiciancat9/toktickit/pull/82) | feature11/lab4-documentation | @martinvadre | Approved and merged |
 ---
 
 ## Review comments I received and my responses
@@ -141,6 +142,18 @@ My response:
 My response:
 
 > Thank you for checking it for me, you can merge it now
+
+---
+
+### My PR #82 - Issue #74
+
+[martinvadre] commented:
+
+> I have reviewed the changes, everything looks good. Approved
+
+My response:
+
+> Thank you for checking this documentation for me you can merge now.
 
 ---
 
