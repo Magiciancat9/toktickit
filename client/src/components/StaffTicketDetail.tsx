@@ -20,6 +20,8 @@ import {
   Priority,
 } from "../api.js";
 import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
+import ActionsTaken from "./ActionsTaken.js";
 
 // ── Constants ────────────────────────────────────────────────────────────
 
@@ -130,6 +132,7 @@ function ReadOnlyField({
 
 export function StaffTicketDetail({ ticketNumber, onBack }: StaffTicketDetailProps) {
   const { currentRequester } = useRequester();
+  const { user } = useAuth();
 
   const [detailState, setDetailState] = useState<DetailState>("loading");
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -699,6 +702,18 @@ export function StaffTicketDetail({ ticketNumber, onBack }: StaffTicketDetailPro
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="row mt-4">
+        <div className="col-12">
+          {user && (
+            <ActionsTaken
+              ticketNumber={ticketNumber}
+              currentUserId={user.id}
+              isStaff={user.role === "IT_STAFF" || user.role === "ADMINISTRATOR"}
+            />
+          )}
         </div>
       </div>
 
