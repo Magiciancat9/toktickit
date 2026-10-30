@@ -21,6 +21,7 @@
 |#72| (https://github.com/Magiciancat9/toktickit/pull/80) | feature9/lab4-regression | @martinvadre | Approved and merged |
 |#73| (https://github.com/Magiciancat9/toktickit/pull/81) | feature10/lab4-accessibility-polish | @martinvadre | Approved and merged |
 |#74| (https://github.com/Magiciancat9/toktickit/pull/82) | feature11/lab4-documentation | @martinvadre | Approved and merged |
+|#75| (https://github.com/Magiciancat9/toktickit/pull/83) | feature12/lab4-final-integration | @martinvadre | Approved and merged |
 ---
 
 ## Review comments I received and my responses
@@ -154,6 +155,17 @@ My response:
 My response:
 
 > Thank you for checking this documentation for me you can merge now.
+
+---
+### My PR #83 - Issue #75
+
+[martinvadre] commented:
+
+> The changes look great and the implementation is solid. Ready to merge.
+
+My response:
+
+> Thank you you can merge this now.
 
 ---
 
