@@ -264,6 +264,68 @@ npm run test -- --run
 
 # Watch mode for development
 npm run test tests/lab-04/
+
+
+Client Tests (Frontend)
+Bash
+# Navigate to client directory
+cd client
+
+# Run all Lab 4 client tests
+npm run test -- --run tests/lab-04/
+
+# Run specific test file
+npm run test -- --run tests/lab-04/ActionsTaken.test.tsx
+
+# Run all client tests (including Labs 1-3 regression)
+npm run test -- --run
+
+# Watch mode for development
+npm run test tests/lab-04/
+
+E2E Tests (Playwright)
+Bash
+# From project root
+
+# Run all Lab 4 E2E tests
+npx playwright test e2e/lab-04/
+
+# Run specific E2E test file
+npx playwright test e2e/lab-04/actions-taken-flow.spec.ts
+npx playwright test e2e/lab-04/dashboards.spec.ts
+npx playwright test e2e/lab-04/ticket-resolution.spec.ts
+
+# Run E2E tests in headed mode (see browser)
+npx playwright test e2e/lab-04/ --headed
+
+# Run E2E tests in debug mode
+npx playwright test e2e/lab-04/ --debug
+
+# List all E2E tests without running
+npx playwright test e2e/lab-04/ --list
+
+# Run all E2E tests (including Labs 2-3 regression)
+npx playwright test
+
+
+Regression Testing
+Bash
+# Server regression (from server/ directory)
+npm run test -- --run tests/lab-01/ tests/lab-02/ tests/lab-03/
+
+# Client regression (from client/ directory)
+npm run test -- --run tests/lab-01/ tests/lab-02/ tests/lab-03/
+
+# E2E regression (from project root)
+npx playwright test e2e/lab-02/ e2e/lab-03/
+Coverage Reports
+Bash
+# Server coverage (from server/ directory)
+npm run test:coverage
+
+# Client coverage (from client/ directory)
+npm run test:coverage
+
 ---
 ```
 
