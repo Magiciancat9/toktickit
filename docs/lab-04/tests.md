@@ -265,6 +265,7 @@ npm run test -- --run
 # Watch mode for development
 npm run test tests/lab-04/
 ---
+```
 
 ## 6. Final Results
 
@@ -314,3 +315,5 @@ All unit, API, UI component, responsive, E2E, and regression test suites have be
 - Load and performance testing are out of scope for Lab 4
 - Dashboard real-time updates (if implemented) would require additional WebSocket or polling tests
 - Timezone handling in "Recently Updated" and "Recently Resolved" calculations should be verified manually across timezones
+
+
